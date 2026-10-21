@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       # source fonts (~30 MB) are downloaded once, then reused: every new post can bring new CJK characters to subset
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .fonts-cache
           key: fonts-v1
