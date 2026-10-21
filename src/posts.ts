@@ -5,9 +5,14 @@ export type Lang = Post["data"]["lang"];
 
 /** Newest first. */
 export async function getPosts() {
-  const posts = (await getCollection("posts"))
-    .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
-  return posts.map((post) => ({ post }));
+  return (await getCollection("posts")).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+}
+
+/** [tag, its posts newest first], the busiest tag first, ties by name: the one grouping the home chips and tag pages share */
+export function byTag(posts: Post[]) {
+  const groups = new Map<string, Post[]>();
+  for (const p of posts) for (const t of p.data.tags) groups.set(t, [...(groups.get(t) ?? []), p]);
+  return [...groups].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
 }
 
 /** 2026-10-21, in Taiwan time so a late-night post never lands on the next day */
@@ -21,7 +26,7 @@ export function minutes(body = "") {
   return Math.max(1, Math.round(cjk / 400 + words / 220));
 }
 
-/** view-transition-name must be a CSS ident: links a ledger row's title to the article heading */
+/** view-transition-name must be a CSS ident: links a card's title to the article heading */
 export const vtName = (id: string) => `t-${id.replace(/[^\p{L}\p{N}_-]/gu, "-")}`;
 
 export const tagHref = (t: string) => `/tags/${encodeURIComponent(t)}/`;

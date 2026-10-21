@@ -1,21 +1,19 @@
 ---
 import Base from "../../layouts/Base.astro";
 import PostGrid from "../../components/PostGrid.astro";
-import { getPosts } from "../../posts";
+import { byTag, getPosts } from "../../posts";
 
 export async function getStaticPaths() {
-  const entries = await getPosts();
-  const tags = new Set(entries.flatMap((e) => e.post.data.tags));
-  return [...tags].map((tag) => ({ params: { tag }, props: { tag, entries: entries.filter((e) => e.post.data.tags.includes(tag)) } }));
+  return byTag(await getPosts()).map(([tag, posts]) => ({ params: { tag }, props: { tag, posts } }));
 }
-const { tag, entries } = Astro.props;
+const { tag, posts } = Astro.props;
 ---
-<Base title={`#${tag} — Fearnotes`} description={`標籤為 #${tag} 的 ${entries.length} 篇文章。`}>
+<Base title={`#${tag} — Fearnotes`} description={`標籤為 #${tag} 的 ${posts.length} 篇文章。`}>
   <header class="head">
-    <p class="mono muted enter" style="--i: 2"><a href="/tags/">tags</a> / {String(entries.length).padStart(2, "0")} entries</p>
+    <p class="mono muted enter" style="--i: 2"><a href="/tags/">tags</a> / {String(posts.length).padStart(2, "0")} entries</p>
     <h1>#{tag}</h1>
   </header>
-  <PostGrid entries={entries} />
+  <PostGrid posts={posts} />
 </Base>
 
 <style>

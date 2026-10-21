@@ -8,14 +8,22 @@ const refreshFonts = {
   name: "refresh-fonts",
   apply: "serve",
   configureServer(server) {
-    let timer;
+    let timer, running = false, again = false;
+    // one cut at a time: a save during a cut queues one more, so two processes never write the same font file
+    const cut = () => {
+      if (running) { again = true; return; }
+      running = true;
+      execFile("node", ["--no-warnings", "scripts/subset-fonts.mjs"], (err) => {
+        running = false;
+        if (err) server.config.logger.warn(`fonts: ${err.message}`);
+        else server.ws.send({ type: "full-reload" });
+        if (again) { again = false; cut(); }
+      });
+    };
     const run = (file) => {
       if (!/[\\/]src[\\/].*\.(astro|ts|md|mdx)$/.test(file)) return;
       clearTimeout(timer);
-      timer = setTimeout(() => execFile("node", ["--no-warnings", "scripts/subset-fonts.mjs"], (err) => {
-        if (err) return server.config.logger.warn(`fonts: ${err.message}`);
-        server.ws.send({ type: "full-reload" });
-      }), 400);
+      timer = setTimeout(cut, 400);
     };
     server.watcher.on("change", run);
     server.watcher.on("add", run);

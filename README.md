@@ -36,7 +36,7 @@ npm run dev
 
 ## 部署
 
-儲存庫：[fearnot221/Fearnotes](https://github.com/fearnot221/Fearnotes)。推送至 `main` 即由 `.github/workflows/deploy.yml` 依序執行 `npm run check`、`npm test`、`npm run build`，任何一步失敗（包含字型缺字檢查）都不會部署，正式站維持上一版。
+儲存庫：[fearnot221/Fearnotes](https://github.com/fearnot221/Fearnotes)。推送至 `main` 即由 `.github/workflows/deploy.yml` 依序執行 `npm run check`、`npm test`、`npm run build`、`npm run test:fonts`（確認缺字檢查本身仍會擋下罕用字），任何一步失敗（包含字型缺字檢查）都不會部署，正式站維持上一版。
 
 - **GitHub Pages**：Settings → Pages 的 Source 為 **GitHub Actions**，Custom domain 為 `blog.fearnot.tw`，憑證核發後啟用 **Enforce HTTPS**。
 - **DNS（Cloudflare）**：`CNAME blog → fearnot221.github.io`，Proxy 設為 **DNS only**（灰色雲朵），否則 GitHub 無法核發 HTTPS 憑證。

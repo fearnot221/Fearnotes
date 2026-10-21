@@ -1,13 +1,13 @@
 ---
 // Posts as a bento of identical cards, one grid per year. Every card puts the same thing in the same place
-// (cover, number and date, title, summary, tags), so the eye can scan a row; only the newest post on the home page spans two cells.
+// (cover, date, title, summary, tags), so the eye can scan a row; only the newest post on the home page spans two cells.
 // A post without a cover gets a perfboard placeholder of the same size, so rows never go uneven.
 import { Image } from "astro:assets";
 import { minutes, postHref, ui, vtName, ymd, type Post } from "../posts";
 
-interface Props { entries: { post: Post }[]; feature?: boolean }
-const { entries, feature = false } = Astro.props;
-const years = Map.groupBy(entries, (e) => ymd(e.post.data.date).slice(0, 4));
+interface Props { posts: Post[]; feature?: boolean }
+const { posts, feature = false } = Astro.props;
+const years = Map.groupBy(posts, (p) => ymd(p.data.date).slice(0, 4));
 ---
 <div class="grid" data-grid>
   {[...years].map(([year, rows], y) => (
@@ -17,7 +17,7 @@ const years = Map.groupBy(entries, (e) => ymd(e.post.data.date).slice(0, 4));
         <span class="mono muted" data-year-count>{String(rows.length).padStart(2, "0")} entries</span>
       </h2>
       <ol class="cards">
-        {rows.map(({ post }, i) => (
+        {rows.map((post, i) => (
           <li
             class:list={["card", { featured: feature && y === 0 && i === 0 }]}
             data-card

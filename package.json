@@ -8,7 +8,8 @@
     "build": "astro build && node --no-warnings scripts/subset-fonts.mjs --dist",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "node --no-warnings src/fuzzy.test.ts"
+    "test": "node --no-warnings src/fuzzy.test.ts",
+    "test:fonts": "node --no-warnings scripts/fonts.test.mjs"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.19",

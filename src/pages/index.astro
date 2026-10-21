@@ -2,14 +2,12 @@
 // Home is the whole index: a short masthead, a finder (search + tag filter) that stays on screen, then every post as a card.
 import Base from "../layouts/Base.astro";
 import PostGrid from "../components/PostGrid.astro";
-import { getPosts, ymd } from "../posts";
+import { byTag, getPosts, ymd } from "../posts";
 import { font } from "../fonts";
 
-const entries = await getPosts();
-const counts = new Map<string, number>();
-for (const { post } of entries) for (const t of post.data.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
-const tags = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-const total = String(entries.length).padStart(3, "0");
+const posts = await getPosts();
+const tags = byTag(posts);
+const total = String(posts.length).padStart(3, "0");
 ---
 <Base title="Fearnotes — 資安與網路維運的工作日誌" description="Fearnot 的工作日誌：資訊安全、CTF、網路維運，以及帶著南部高中生一起學的那些事。">
   <link slot="head" rel="preload" href={font("literata-display")} as="font" type="font/woff2" crossorigin />
@@ -18,11 +16,11 @@ const total = String(entries.length).padStart(3, "0");
     <h1 class="name"><span class="word">Fearnotes</span><span class="cursor" aria-hidden="true" data-cursor></span></h1>
     <div class="intro">
       <p class="lede"><span>資訊安全、CTF 與網路維運的工作日誌。</span><span>寫給未來的自己，</span><span>也寫給正在入門、還有點害怕的你。</span></p>
-      <p class="mono muted enter" style="--i: 10">{total} entries · last write {entries[0] ? ymd(entries[0].post.data.date) : "—"} · <a href="/rss.xml">RSS</a></p>
+      <p class="mono muted enter" style="--i: 10">{total} entries · last write {posts[0] ? ymd(posts[0].data.date) : "—"} · <a href="/rss.xml">RSS</a></p>
     </div>
   </header>
 
-  {entries.length > 0 && (
+  {posts.length > 0 && (
     // without JavaScript the finder stays hidden and every card simply shows
     <div class="finder" role="search" aria-label="搜尋文章" hidden data-finder>
       <div class="bar">
@@ -41,16 +39,16 @@ const total = String(entries.length).padStart(3, "0");
       </div>
       <div class="topics" data-topics>
         <div class="chips" role="group" aria-label="依標籤篩選" id="chips" data-chips>
-          <button type="button" aria-pressed="true" data-tag=""><span>全部</span><b class="mono">{entries.length}</b></button>
-          {tags.map(([t, n]) => <button type="button" aria-pressed="false" data-tag={t}><span class="mono">#{t}</span><b class="mono">{n}</b></button>)}
+          <button type="button" aria-pressed="true" data-tag=""><span>全部</span><b class="mono">{posts.length}</b></button>
+          {tags.map(([t, list]) => <button type="button" aria-pressed="false" data-tag={t}><span class="mono">#{t}</span><b class="mono">{list.length}</b></button>)}
         </div>
         <button type="button" class="more mono" aria-expanded="false" aria-controls="chips" hidden data-more></button>
       </div>
     </div>
   )}
 
-  {entries.length
-    ? <PostGrid entries={entries} feature />
+  {posts.length
+    ? <PostGrid posts={posts} feature />
     : <p class="mono muted"><span class="status" aria-hidden="true"></span>tail: waiting for the first entry…</p>}
   <p class="empty mono muted" hidden data-empty><span class="status" aria-hidden="true"></span>grep: no matching entries</p>
 </Base>
@@ -252,6 +250,7 @@ const total = String(entries.length).padStart(3, "0");
     .topics { display: flex; align-items: flex-start; gap: .5rem; padding-top: var(--space-2); margin-bottom: var(--space-4); }
     .chips { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
     .collapsed .chips { max-height: 2.25rem; overflow: hidden; }
+    .collapsed:has(.chips :focus-visible) .chips { max-height: none; } /* keyboard focus never lands on a chip that is folded away */
     .chips button, .more { flex: none; display: inline-flex; align-items: stretch; height: 2.25rem; border: var(--border); color: var(--color-text-muted); font-size: var(--step--1); transition: color var(--dur-1), border-color var(--dur-1), background var(--dur-1); }
     .chips button span { display: flex; align-items: center; padding-inline: .75rem; }
     .chips button b { display: flex; align-items: center; padding-inline: .55rem; border-left: var(--border); font-weight: 400; color: var(--color-text-faint); font-variant-numeric: tabular-nums; transition: inherit; }
