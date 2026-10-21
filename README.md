@@ -1,4 +1,4 @@
-# blog.fearnot.tw
+# Fearnotes
 
 Fearnotes：資訊安全、CTF 與網路維運的工作日誌。延續 [fearnot.tw](https://fearnot.tw/) 的設計系統（夜班／印刷紙兩套調色盤、Literata／Fragment Mono／Noto Serif TC、琥珀方塊狀態燈、只用髮絲線分隔），以 Astro、TypeScript 與原生 CSS 建置，部署於 GitHub Pages。
 
@@ -14,24 +14,7 @@ Fearnotes：資訊安全、CTF 與網路維運的工作日誌。延續 [fearnot.
 
 ## 寫文章
 
-在 `src/content/posts/` 新增 Markdown 檔，檔名即網址（`hello-world.md` → `/p/hello-world/`）：
-
-```md
----
-title: 標題
-description: 一句話摘要，用於列表、RSS 與分享預覽
-date: 2026-10-21
-updated: 2026-10-30   # 選填
-tags: [ctf, web]
-lang: zh               # 選填，英文文章填 en
-cover: ./cover.jpg     # 選填，相對於文章檔案的路徑
-coverAlt: 封面的文字說明  # 選填，同時作為圖說
----
-```
-
-要放封面時，把文章寫成資料夾：`src/content/posts/my-post/index.md` 加上同資料夾的 `cover.jpg`（網址仍是 `/p/my-post/`）。封面建議 16:9、寬 1600px 以上；建置時會自動縮放成 WebP，並裁成 1200×630 作為社群分享預覽圖。沒有封面的文章，卡片會顯示同尺寸的點陣佔位圖，版面不會參差。
-
-圖片下方緊接一行 `*說明文字*` 會排成圖說；`---` 是三顆方塊的段落停頓。
+在 `src/content/posts/` 新增 Markdown 檔，檔名即網址（`hello-world.md` → `/p/hello-world/`）。開頭資訊的欄位、封面、支援與不支援的 Markdown 語法，見 **[WRITING.md](WRITING.md)**。
 
 ## 本機開發
 
@@ -53,7 +36,7 @@ npm run dev
 
 ## 部署
 
-儲存庫：[fearnot221/blog.fearnot.tw](https://github.com/fearnot221/blog.fearnot.tw)。推送至 `main` 即由 `.github/workflows/deploy.yml` 依序執行 `npm run check`、`npm test`、`npm run build`，任何一步失敗（包含字型缺字檢查）都不會部署，正式站維持上一版。
+儲存庫：[fearnot221/Fearnotes](https://github.com/fearnot221/Fearnotes)。推送至 `main` 即由 `.github/workflows/deploy.yml` 依序執行 `npm run check`、`npm test`、`npm run build`，任何一步失敗（包含字型缺字檢查）都不會部署，正式站維持上一版。
 
 - **GitHub Pages**：Settings → Pages 的 Source 為 **GitHub Actions**，Custom domain 為 `blog.fearnot.tw`，憑證核發後啟用 **Enforce HTTPS**。
 - **DNS（Cloudflare）**：`CNAME blog → fearnot221.github.io`，Proxy 設為 **DNS only**（灰色雲朵），否則 GitHub 無法核發 HTTPS 憑證。
