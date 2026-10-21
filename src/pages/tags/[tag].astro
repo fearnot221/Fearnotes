@@ -1,0 +1,27 @@
+---
+import Base from "../../layouts/Base.astro";
+import PostGrid from "../../components/PostGrid.astro";
+import { getPosts } from "../../posts";
+
+export async function getStaticPaths() {
+  const entries = await getPosts();
+  const tags = new Set(entries.flatMap((e) => e.post.data.tags));
+  return [...tags].map((tag) => ({ params: { tag }, props: { tag, entries: entries.filter((e) => e.post.data.tags.includes(tag)) } }));
+}
+const { tag, entries } = Astro.props;
+---
+<Base title={`#${tag} — Fearnot Logbook`} description={`標籤為 #${tag} 的 ${entries.length} 篇文章。`}>
+  <header class="head">
+    <p class="mono muted enter" style="--i: 2"><a href="/tags/">tags</a> / {String(entries.length).padStart(2, "0")} entries</p>
+    <h1>#{tag}</h1>
+  </header>
+  <PostGrid entries={entries} />
+</Base>
+
+<style>
+  @layer components {
+    .head { padding-block: clamp(3rem, 1rem + 7vw, 7rem) var(--space-3); }
+    .head a { color: var(--color-text-muted); }
+    h1 { font: 600 var(--step-4) / 1.1 var(--font-serif); letter-spacing: var(--tracking-display); color: var(--color-text-strong); margin-top: var(--space-2); overflow-wrap: anywhere; }
+  }
+</style>

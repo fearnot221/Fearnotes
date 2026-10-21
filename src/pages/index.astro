@@ -1,0 +1,272 @@
+---
+// Home is the whole index: a short masthead, a finder (search + tag filter) that stays on screen, then every post as a card.
+import Base from "../layouts/Base.astro";
+import PostGrid from "../components/PostGrid.astro";
+import { getPosts, ymd } from "../posts";
+import { font } from "../fonts";
+
+const entries = await getPosts();
+const counts = new Map<string, number>();
+for (const { post } of entries) for (const t of post.data.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+const tags = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+const total = String(entries.length).padStart(3, "0");
+---
+<Base title="Fearnot Logbook — 資安與網路維運的工作日誌" description="Fearnot 的工作日誌：資訊安全、CTF、網路維運，以及帶著南部高中生一起學的那些事。">
+  <link slot="head" rel="preload" href={font("literata-display")} as="font" type="font/woff2" crossorigin />
+
+  <header class="hero">
+    <h1 class="name"><span class="word">Logbook</span><span class="cursor" aria-hidden="true" data-cursor></span></h1>
+    <div class="intro">
+      <p class="lede"><span>資訊安全、CTF 與網路維運的工作日誌。</span><span>寫給未來的自己，</span><span>也寫給正在入門、還有點害怕的你。</span></p>
+      <p class="mono muted enter" style="--i: 10">{total} entries · last write {entries[0] ? ymd(entries[0].post.data.date) : "—"} · <a href="/rss.xml">RSS</a></p>
+    </div>
+  </header>
+
+  {entries.length > 0 && (
+    // without JavaScript the finder stays hidden and every card simply shows
+    <div class="finder" role="search" aria-label="搜尋文章" hidden data-finder>
+      <div class="bar">
+        <div class="field">
+          <label class="sr-only" for="q">搜尋文章</label>
+          <input id="q" type="search" placeholder="模糊搜尋：標題、摘要、標籤（打錯字也找得到）" autocomplete="off" spellcheck="false"
+            role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="results" data-q />
+          <kbd class="mono" aria-hidden="true">/</kbd>
+          {/* results open under the field like a search engine's suggestions; the cards below never change */}
+          <div class="results" hidden data-results>
+            <ul id="results" role="listbox" aria-label="搜尋結果" data-list></ul>
+            <p class="foot mono" data-foot></p>
+          </div>
+        </div>
+        <p class="count mono" aria-live="polite" data-count></p>
+      </div>
+      <div class="topics" data-topics>
+        <div class="chips" role="group" aria-label="依標籤篩選" id="chips" data-chips>
+          <button type="button" aria-pressed="true" data-tag=""><span>全部</span><b class="mono">{entries.length}</b></button>
+          {tags.map(([t, n]) => <button type="button" aria-pressed="false" data-tag={t}><span class="mono">#{t}</span><b class="mono">{n}</b></button>)}
+        </div>
+        <button type="button" class="more mono" aria-expanded="false" aria-controls="chips" hidden data-more></button>
+      </div>
+    </div>
+  )}
+
+  {entries.length
+    ? <PostGrid entries={entries} feature />
+    : <p class="mono muted"><span class="status" aria-hidden="true"></span>tail: waiting for the first entry…</p>}
+  <p class="empty mono muted" hidden data-empty><span class="status" aria-hidden="true"></span>grep: no matching entries</p>
+</Base>
+
+<script>
+  // ── finder: fuzzy search in a results panel (see src/fuzzy.ts), and a tag filter on the cards (kept in the URL as ?tag=…) ──
+  import { fuzzy } from "../fuzzy";
+
+  const finder = document.querySelector<HTMLElement>("[data-finder]");
+  if (finder) {
+    const input = finder.querySelector<HTMLInputElement>("[data-q]")!;
+    const panel = finder.querySelector<HTMLElement>("[data-results]")!;
+    const list = finder.querySelector<HTMLElement>("[data-list]")!;
+    const foot = finder.querySelector<HTMLElement>("[data-foot]")!;
+    const chips = [...finder.querySelectorAll<HTMLButtonElement>("[data-tag]")];
+    const cards = [...document.querySelectorAll<HTMLElement>("[data-card]")].map((el) => ({
+      el,
+      href: el.querySelector("a")!.getAttribute("href")!,
+      date: el.dataset.date!,
+      doc: { title: el.querySelector<HTMLElement>("[data-title]")!.dataset.title!, tags: el.dataset.tags!, desc: el.dataset.desc! },
+    }));
+    const years = [...document.querySelectorAll<HTMLElement>("[data-year]")];
+    const count = finder.querySelector<HTMLElement>("[data-count]")!;
+    const empty = document.querySelector<HTMLElement>("[data-empty]")!;
+    let tag = chips.some((c) => c.dataset.tag === new URLSearchParams(location.search).get("tag")) ? new URLSearchParams(location.search).get("tag")! : "";
+
+    // ── tag filter: hides cards outside the tag, keeps the year-grouped layout ──
+    const filter = () => {
+      let shown = 0;
+      for (const c of cards) { c.el.hidden = !!tag && !c.doc.tags.split(" ").includes(tag); if (!c.el.hidden) shown++; }
+      for (const y of years) {
+        const n = y.querySelectorAll("[data-card]:not([hidden])").length;
+        y.hidden = n === 0;
+        y.querySelector("[data-year-count]")!.textContent = `${String(n).padStart(2, "0")} entries`;
+      }
+      chips.forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.tag === tag)));
+      count.textContent = tag ? `${shown} / ${cards.length}` : "";
+      empty.hidden = shown > 0;
+      history.replaceState(null, "", tag ? `?tag=${encodeURIComponent(tag)}` : location.pathname);
+    };
+
+    // ── results panel: the best matches, built from plain text (never from markup) ──
+    const LIMIT = 8;
+    let options: HTMLAnchorElement[] = [];
+    let active = -1;
+    const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, ...kids: (Node | string)[]) => {
+      const n = document.createElement(tag); n.className = cls; n.append(...kids); return n;
+    };
+    const marked = (text: string, at: number[]) => [...text].map((ch, i) => (at.includes(i) ? el("mark", "", ch) : ch));
+    const setActive = (i: number) => {
+      active = i;
+      options.forEach((o, j) => o.setAttribute("aria-selected", String(j === i)));
+      if (i >= 0) { input.setAttribute("aria-activedescendant", options[i].id); options[i].scrollIntoView({ block: "nearest" }); }
+      else input.removeAttribute("aria-activedescendant");
+    };
+    const open = (show: boolean) => { panel.hidden = !show; input.setAttribute("aria-expanded", String(show)); if (!show) setActive(-1); };
+
+    const search = () => {
+      const query = input.value.trim();
+      if (!query) { open(false); return; }
+      const hits = cards.flatMap((c) => { const h = fuzzy(query, c.doc); return h ? [{ c, h }] : []; }).sort((a, b) => b.h.score - a.h.score);
+      options = hits.slice(0, LIMIT).map(({ c, h }, i) => {
+        const a = el("a", "hit", el("span", "t", ...marked(c.doc.title, h.title)), el("span", "m mono", `${c.date}${c.doc.tags ? " · #" + c.doc.tags.split(" ").join(" #") : ""}`), el("span", "d", c.doc.desc));
+        Object.assign(a, { href: c.href, id: `hit-${i}`, tabIndex: -1 });
+        a.setAttribute("role", "option");
+        return a;
+      });
+      list.replaceChildren(...options.map((o) => { const li = el("li", "", o); li.setAttribute("role", "presentation"); return li; }));
+      foot.textContent = !hits.length ? "找不到符合的文章，換個關鍵字試試" : hits.length > LIMIT ? `共 ${hits.length} 筆，顯示前 ${LIMIT} 筆 · ↑↓ 選擇 · Enter 開啟` : `${hits.length} 筆 · ↑↓ 選擇 · Enter 開啟`;
+      open(true);
+      setActive(options.length ? 0 : -1);
+    };
+
+    input.addEventListener("input", search);
+    input.addEventListener("focus", () => input.value.trim() && search());
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (panel.hidden) { search(); return; }
+        e.preventDefault();
+        if (options.length) setActive((active + (e.key === "ArrowDown" ? 1 : -1) + options.length) % options.length);
+      } else if (e.key === "Enter" && !panel.hidden && active >= 0) {
+        e.preventDefault();
+        options[active].click();
+      } else if (e.key === "Escape") {
+        // first Escape closes the panel and keeps the words (the browser would clear them); the next one clears
+        if (!panel.hidden) { e.preventDefault(); open(false); } else input.value = "";
+      }
+    });
+    list.addEventListener("pointermove", (e) => { const i = options.indexOf((e.target as Element).closest("a")!); if (i >= 0 && i !== active) setActive(i); });
+    // clicking anywhere else, or tabbing away, closes the panel
+    addEventListener("pointerdown", (e) => { if (!(e.target as Element).closest(".field")) open(false); });
+    finder.addEventListener("focusout", (e) => { if (!finder.contains(e.relatedTarget as Node)) open(false); });
+
+    // ── tags: one row by default; "+N" opens the rest. N counts the chips that wrapped below the first row ──
+    const topics = finder.querySelector<HTMLElement>("[data-topics]")!;
+    const more = finder.querySelector<HTMLButtonElement>("[data-more]")!;
+    const fit = () => {
+      const isOpen = more.getAttribute("aria-expanded") === "true";
+      topics.classList.remove("collapsed");
+      const hidden = chips.filter((c) => c.offsetTop > chips[0].offsetTop + 4).length;
+      topics.classList.toggle("collapsed", !isOpen && hidden > 0);
+      more.hidden = hidden === 0;
+      more.textContent = isOpen ? "收合" : `+${hidden} 個標籤`;
+    };
+    more.addEventListener("click", () => { more.setAttribute("aria-expanded", String(more.getAttribute("aria-expanded") !== "true")); fit(); });
+    new ResizeObserver(fit).observe(topics);
+    chips.forEach((c) => c.addEventListener("click", () => { tag = c.dataset.tag === tag ? "" : c.dataset.tag!; filter(); }));
+
+    // "/" jumps to search from anywhere
+    addEventListener("keydown", (e) => {
+      if (e.key === "/" && !(e.target as Element).closest("input, textarea")) { e.preventDefault(); input.focus(); }
+    });
+    finder.hidden = false;
+    // a chosen tag that sits in the folded part opens the panel so it stays visible
+    if (tag && chips.find((c) => c.dataset.tag === tag)!.offsetTop > chips[0].offsetTop + 4) more.setAttribute("aria-expanded", "true");
+    filter();
+  }
+
+  // ── intro, as on fearnot.tw: the cursor that scanned the title flies into the header and becomes its status light ──
+  const cursor = document.querySelector<HTMLElement>("[data-cursor]");
+  const port = document.querySelector<HTMLElement>("[data-port]");
+  if (cursor && port && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    port.style.animation = "none";
+    port.style.opacity = "0";
+    cursor.addEventListener("animationend", (e) => {
+      if (e.animationName !== "sweep") return;
+      const from = cursor.getBoundingClientRect(), to = port.getBoundingClientRect();
+      if (to.bottom < 0) { port.style.opacity = ""; return; }
+      cursor.style.left = getComputedStyle(cursor).left;
+      cursor.style.animation = "none";
+      cursor.style.transformOrigin = "0 0";
+      const flight = cursor.animate(
+        [{ transform: "none" }, { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(${to.width / from.width})` }],
+        { duration: 650, easing: "cubic-bezier(.65, 0, .35, 1)", fill: "forwards" },
+      );
+      flight.finished.then(() => {
+        cursor.remove();
+        port.style.opacity = "";
+        port.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }], { duration: 260, easing: "steps(2, jump-none)" });
+      });
+    });
+  }
+</script>
+
+<style>
+  @layer components {
+    /* ── masthead: title left, what this is on the right ── */
+    .hero { --intro-delay: 420ms; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end; gap: var(--space-3) var(--space-5); padding-block: clamp(2.5rem, 1rem + 5vw, 5.5rem) var(--space-4); }
+    .name { position: relative; display: inline-block; margin-left: -.05em; font: 600 clamp(3.5rem, 1.5rem + 7vw, 7.5rem) / .85 var(--font-display); letter-spacing: -.035em; color: var(--color-text-strong); }
+    .word { display: inline-block; clip-path: inset(-.2em 100% -.2em 0); animation: reveal var(--dur-5) var(--ease-in-out) var(--intro-delay) forwards; }
+    .cursor {
+      position: absolute; left: 0; bottom: .1em; width: .1em; height: .1em; background: var(--color-accent);
+      animation: blink var(--intro-delay) steps(1, end) both, sweep var(--dur-5) var(--ease-in-out) var(--intro-delay) both, gone var(--dur-2) ease-out calc(var(--intro-delay) + var(--dur-5) + 400ms) forwards;
+    }
+    @keyframes reveal { to { clip-path: inset(-.2em 0 -.2em 0); } }
+    @keyframes blink { 0%, 50% { opacity: 1; } 25%, 75% { opacity: 0; } }
+    @keyframes sweep { from { left: 0; } to { left: calc(100% + .06em); } }
+    @keyframes gone { to { opacity: 0; } }
+    .intro { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: .4rem; }
+    .lede { font-size: var(--step-1); line-height: 1.7; }
+    .lede span { display: inline-block; text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; } /* lines break between phrases */
+    .intro a { color: inherit; }
+    @media (max-width: 760px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+
+    /* ── finder: the search bar stays pinned to the top while the cards scroll beneath it; the tag panel scrolls away ── */
+    .finder { display: contents; } /* so the bar sticks for the whole page, not just inside this wrapper */
+    .finder[hidden] { display: none; }
+    .bar {
+      position: sticky; top: 0; z-index: 4; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-3);
+      padding-block: var(--space-2); background: var(--color-bg); border-block: var(--border);
+    }
+    .field { position: relative; }
+    input {
+      /* typed text can be any character, so it never uses the subset serif: mono for Latin, the system sans for CJK */
+      width: 100%; padding: .7rem 2.5rem .7rem .9rem; font: 400 1rem / 1.5 var(--font-mono); letter-spacing: 0; color: var(--color-text);
+      background: var(--color-surface); border: var(--border); border-radius: 0; -webkit-appearance: none; appearance: none;
+    }
+    input::placeholder { color: var(--color-text-muted); }
+    input:focus { border-color: var(--color-accent); outline: none; }
+    input::-webkit-search-cancel-button { display: none; }
+    kbd { position: absolute; right: .7rem; top: 50%; translate: 0 -50%; padding: 0 .4rem; border: var(--border); color: var(--color-text-muted); font-size: .75rem; line-height: 1.5; }
+    input:focus + kbd, input:not(:placeholder-shown) + kbd { display: none; }
+    /* results: a sheet hanging from the field, above the cards; it scrolls on its own when long */
+    .results { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 5; max-height: min(34rem, 70vh); overflow: auto; overscroll-behavior: contain;
+      background: var(--color-bg); border: 1px solid var(--color-text-faint); box-shadow: 0 18px 40px -12px rgb(0 0 0 / .55); }
+    .results[hidden] { display: none; }
+    .results :global(.hit) { display: grid; gap: .2rem; padding: .8rem 1rem; border-left: 2px solid transparent; color: var(--color-text); text-decoration: none; }
+    .results li + li { border-top: var(--border); }
+    .results :global(.hit[aria-selected="true"]) { background: var(--color-surface); border-left-color: var(--color-accent); }
+    .results :global(.hit .t) { font: 600 var(--step-0) / 1.5 var(--font-serif); color: var(--color-text-strong); }
+    .results :global(.hit .m) { color: var(--color-text-muted); }
+    .results :global(.hit .d) { color: var(--color-text-muted); font-size: .9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .results :global(mark) { color: inherit; background: color-mix(in srgb, var(--color-accent) 30%, transparent); box-shadow: 0 1px 0 var(--color-accent); }
+    .foot { padding: .6rem 1rem; border-top: var(--border); color: var(--color-text-muted); }
+    .count { color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+    .count:empty { display: none; }
+
+    /* tags: wrapping chips, folded to one row until "+N" is pressed */
+    .topics { display: flex; align-items: flex-start; gap: .5rem; padding-top: var(--space-2); margin-bottom: var(--space-4); }
+    .chips { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
+    .collapsed .chips { max-height: 2.25rem; overflow: hidden; }
+    .chips button, .more { flex: none; display: inline-flex; align-items: stretch; height: 2.25rem; border: var(--border); color: var(--color-text-muted); font-size: var(--step--1); transition: color var(--dur-1), border-color var(--dur-1), background var(--dur-1); }
+    .chips button span { display: flex; align-items: center; padding-inline: .75rem; }
+    .chips button b { display: flex; align-items: center; padding-inline: .55rem; border-left: var(--border); font-weight: 400; color: var(--color-text-faint); font-variant-numeric: tabular-nums; transition: inherit; }
+    .chips button:hover { color: var(--color-text-strong); border-color: var(--color-text-faint); }
+    .chips [aria-pressed="true"] { color: var(--color-bg); background: var(--color-accent); border-color: var(--color-accent); }
+    .chips [aria-pressed="true"] b { color: inherit; border-color: color-mix(in srgb, var(--color-bg) 30%, transparent); }
+    .more { align-items: center; padding-inline: .75rem; border-style: dashed; white-space: nowrap; }
+    .more:hover { color: var(--color-accent); border-color: var(--color-accent); }
+    .more[hidden] { display: none; }
+    @media (max-width: 860px) { .bar { margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); } }
+
+    .empty { padding-block: var(--space-4); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .word { clip-path: none; animation: none; }
+    .cursor { display: none; }
+  }
+</style>

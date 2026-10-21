@@ -1,0 +1,43 @@
+---
+import type { Lang } from "../posts";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const labels = { zh: { light: "切換為淺色模式", dark: "切換為深色模式" }, en: { light: "Switch to light theme", dark: "Switch to dark theme" } }[lang];
+---
+<button type="button" class="theme-toggle" data-theme-toggle data-label-light={labels.light} data-label-dark={labels.dark} aria-label={labels.light} title={labels.light}>
+  <span class="glyph" aria-hidden="true"></span>
+</button>
+
+<script>
+  const root = document.documentElement;
+  const system = matchMedia("(prefers-color-scheme: dark)");
+  const current = () => (root.dataset.theme as "light" | "dark" | undefined) ?? (system.matches ? "dark" : "light");
+  document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]").forEach((btn) => {
+    const label = () => {
+      const next = current() === "dark" ? "light" : "dark";
+      btn.ariaLabel = btn.title = btn.dataset[next === "light" ? "labelLight" : "labelDark"]!;
+    };
+    label();
+    system.addEventListener("change", label);
+    btn.addEventListener("click", () => {
+      const flip = () => {
+        root.dataset.theme = current() === "dark" ? "light" : "dark";
+        try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+        label();
+      };
+      // a plain crossfade between palettes; skipped when motion is reduced
+      if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) flip();
+      else document.startViewTransition(flip);
+    });
+  });
+</script>
+
+<style>
+  @layer components {
+    .theme-toggle { display: grid; place-items: center; width: 2rem; height: 2rem; color: var(--color-text-muted); transition: color var(--dur-1); }
+    .theme-toggle:hover { color: var(--color-text); }
+    /* the brand square, half lit: the current palette is the filled side */
+    .glyph { width: .75rem; height: .75rem; border: 1px solid currentColor; background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+  }
+</style>

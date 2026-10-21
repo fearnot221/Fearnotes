@@ -1,0 +1,37 @@
+---
+import ThemeToggle from "./ThemeToggle.astro";
+import type { Lang } from "../posts";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const here = Astro.url.pathname;
+const nav = [
+  { href: "/", label: "Log", current: here === "/" || here.startsWith("/posts/") },
+  { href: "/tags/", label: "Tags", current: here.startsWith("/tags/") },
+];
+---
+<header class="top mono">
+  <a class="home" href="/"><span class="status link-up" aria-hidden="true" data-port></span>blog.fearnot.tw</a>
+  <div class="actions enter" style="--i: 2">
+    <nav aria-label={lang === "zh" ? "網站導覽" : "Site"}>
+      <ul>
+        {nav.map((n) => <li><a href={n.href} aria-current={n.current ? "page" : undefined}>{n.label}</a></li>)}
+        <li class="wide"><a href="https://fearnot.tw/">fearnot.tw<span aria-hidden="true"> ↗</span></a></li>
+      </ul>
+    </nav>
+    <ThemeToggle lang={lang} />
+  </div>
+</header>
+
+<style>
+  @layer components {
+    .top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+    .top a { text-decoration: none; white-space: nowrap; }
+    .actions { display: flex; align-items: center; gap: var(--space-2); }
+    ul { display: flex; gap: .15rem; }
+    li a { display: inline-block; padding: .35rem .5rem; color: var(--color-text-muted); }
+    li a:hover { color: var(--color-text); }
+    [aria-current="page"] { color: var(--color-text); text-decoration: underline 1px var(--color-accent); text-underline-offset: .35em; }
+    @media (max-width: 420px) { .wide { display: none; } }
+  }
+</style>

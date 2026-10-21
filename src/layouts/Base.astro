@@ -1,0 +1,69 @@
+---
+import "../styles/global.css";
+import Top from "../components/Top.astro";
+import Foot from "../components/Foot.astro";
+import type { Lang } from "../posts";
+import { font, fontFaces } from "../fonts";
+
+interface Props {
+  title: string;
+  description: string;
+  lang?: Lang;
+  /** article pages add og:type article and their dates */
+  article?: { published: Date; modified?: Date; tags: string[] };
+  /** absolute or root-relative URL of a 1200×630 share image */
+  image?: string;
+  jsonld?: object;
+  noindex?: boolean;
+}
+const { title, description, lang = "zh", article, image, jsonld, noindex = false } = Astro.props;
+const url = new URL(Astro.url.pathname, Astro.site).href;
+---
+<!doctype html>
+<html lang={lang === "zh" ? "zh-Hant-TW" : "en"}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#121413" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f3f1ea" media="(prefers-color-scheme: light)" />
+  {/* apply a saved choice before first paint, so the page never flashes the other theme */}
+  <script is:inline>try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  {noindex ? <meta name="robots" content="noindex" /> : (
+    <>
+      <link rel="canonical" href={url} />
+      <meta property="og:type" content={article ? "article" : "website"} />
+      <meta property="og:site_name" content="Fearnot Logbook" />
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
+      <meta property="og:url" content={url} />
+      <meta property="og:locale" content={lang === "zh" ? "zh_TW" : "en_US"} />
+      {article && <meta property="article:published_time" content={article.published.toISOString()} />}
+      {article?.modified && <meta property="article:modified_time" content={article.modified.toISOString()} />}
+      {article?.tags.map((t) => <meta property="article:tag" content={t} />)}
+      {image && <meta property="og:image" content={new URL(image, Astro.site).href} />}
+      {image && <meta property="og:image:width" content="1200" />}
+      {image && <meta property="og:image:height" content="630" />}
+      <meta name="twitter:card" content={image ? "summary_large_image" : "summary"} />
+    </>
+  )}
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" type="image/x-icon" />
+  <link rel="alternate" type="application/rss+xml" title="Fearnot Logbook" href="/rss.xml" />
+  <link rel="sitemap" href="/sitemap-index.xml" />
+  <style is:inline set:html={fontFaces}></style>
+  <link rel="preload" href={font("literata")} as="font" type="font/woff2" crossorigin />
+  {lang === "zh" && <link rel="preload" href={font("noto-serif-tc-400")} as="font" type="font/woff2" crossorigin />}
+  <slot name="head" />
+  {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
+</head>
+<body>
+  <a class="skip mono" href="#main">{lang === "zh" ? "跳到主要內容" : "Skip to content"}</a>
+  <div class="page">
+    <Top lang={lang} />
+    <main id="main" tabindex="-1"><slot /></main>
+    <Foot />
+  </div>
+</body>
+</html>

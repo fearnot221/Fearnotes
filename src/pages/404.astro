@@ -1,0 +1,21 @@
+---
+// GitHub Pages serves dist/404.html for any missing path.
+import Base from "../layouts/Base.astro";
+---
+<Base title="404 — Fearnot Logbook" description="找不到這個頁面 / Page not found" noindex>
+  <div class="nf">
+    <p class="mono muted"><span class="status" aria-hidden="true"></span>404 · no such file or directory</p>
+    <h1>這一頁不在日誌裡</h1>
+    <p class="en" lang="en">This entry doesn't exist, or it was rotated out.</p>
+    <p class="mono"><a href="/">← cd /var/log/fearnot</a></p>
+  </div>
+</Base>
+
+<style>
+  @layer components {
+    .nf { min-height: 60vh; display: flex; flex-direction: column; justify-content: center; gap: var(--space-2); }
+    h1 { font: 600 var(--step-3) / 1.2 var(--font-serif); color: var(--color-text-strong); }
+    .en { color: var(--color-text-muted); }
+    a { display: inline-block; padding-block: .3rem; }
+  }
+</style>

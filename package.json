@@ -1,0 +1,24 @@
+{
+  "name": "blog.fearnot.tw",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "fonts": "node --no-warnings scripts/subset-fonts.mjs",
+    "dev": "npm run fonts && astro dev",
+    "build": "astro build && node --no-warnings scripts/subset-fonts.mjs --dist",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "node --no-warnings src/fuzzy.test.ts"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.4.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.11",
+    "harfbuzzjs": "^1.6.3",
+    "subset-font": "^2.9.0",
+    "typescript": "^6.0.3"
+  }
+}

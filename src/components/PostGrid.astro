@@ -1,0 +1,103 @@
+---
+// Posts as a bento of identical cards, one grid per year. Every card puts the same thing in the same place
+// (cover, number and date, title, summary, tags), so the eye can scan a row; only the newest post on the home page spans two cells.
+// A post without a cover gets a perfboard placeholder of the same size, so rows never go uneven.
+import { Image } from "astro:assets";
+import { minutes, ui, vtName, ymd, type Post } from "../posts";
+
+interface Props { entries: { post: Post }[]; feature?: boolean }
+const { entries, feature = false } = Astro.props;
+const years = Map.groupBy(entries, (e) => ymd(e.post.data.date).slice(0, 4));
+---
+<div class="grid" data-grid>
+  {[...years].map(([year, rows], y) => (
+    <section class="year" aria-labelledby={`y${year}`} data-year>
+      <h2 class="yearbar" id={`y${year}`}>
+        <span class="numeral">{year}</span>
+        <span class="mono muted" data-year-count>{String(rows.length).padStart(2, "0")} entries</span>
+      </h2>
+      <ol class="cards">
+        {rows.map(({ post }, i) => (
+          <li
+            class:list={["card", { featured: feature && y === 0 && i === 0 }]}
+            data-card
+            data-tags={post.data.tags.join(" ")}
+            data-desc={post.data.description}
+            data-date={ymd(post.data.date)}
+          >
+            <a href={`/posts/${post.id}/`} lang={post.data.lang === "en" ? "en" : undefined}>
+              <div class="cover">
+                {post.data.cover
+                  ? <Image src={post.data.cover} alt="" widths={[480, 800, 1200]} sizes={feature && y === 0 && i === 0 ? "(max-width: 599px) 100vw, (max-width: 1023px) 100vw, 760px" : "(max-width: 599px) 100vw, (max-width: 1023px) 50vw, 380px"} loading={y === 0 && i < 4 ? "eager" : "lazy"} style={`view-transition-name: c-${vtName(post.id)}`} />
+                  : <span class="ph" aria-hidden="true"></span>}
+              </div>
+              <div class="body">
+                <p class="meta mono">
+                  <time datetime={post.data.date.toISOString()}>{ymd(post.data.date).slice(5)}</time>
+                  <span>{ui.min[post.data.lang](minutes(post.body))}</span>
+                  {post.data.draft && <span class="draft">draft</span>}
+                </p>
+                <h3 class="title" style={`view-transition-name: ${vtName(post.id)}`} data-title={post.data.title}>{post.data.title}</h3>
+                <p class="desc">{post.data.description}</p>
+                {post.data.tags.length > 0 && <p class="tags mono">{post.data.tags.map((t) => `#${t}`).join("  ")}</p>}
+              </div>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  ))}
+</div>
+
+<style>
+  @layer components {
+    .year + .year { margin-top: var(--space-5); }
+    .yearbar { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-3); font-weight: 400; }
+    .numeral { font: 600 clamp(2.25rem, 1.5rem + 3vw, 3.5rem) / 1 var(--font-display); letter-spacing: -.03em; color: transparent; -webkit-text-stroke: 1px var(--color-text-faint); }
+
+    /* hairlines between cards: each card draws a 1px ring into the 1px gap, so an unfilled last row stays blank instead of gray */
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 1px; }
+    .featured { grid-column: span 2; }
+    @media (max-width: 1023px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 599px) { .cards { grid-template-columns: minmax(0, 1fr); } .featured { grid-column: auto; } }
+
+    .card { box-shadow: 0 0 0 1px var(--color-rule); }
+    .card[hidden] { display: none; }
+    .card a {
+      position: relative; display: flex; flex-direction: column; height: 100%;
+      color: inherit; text-decoration: none; outline-offset: -2px;
+      transition: background var(--dur-2);
+    }
+    .body { display: flex; flex-direction: column; gap: .6rem; flex: 1; padding: var(--space-3); }
+
+    /* cover: 16:9, flush to the card edges, a hairline below; it eases in a little on hover */
+    .cover { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-bottom: 1px solid var(--color-rule); background: var(--color-surface); }
+    .cover img { width: 100%; height: 100%; object-fit: cover; transition: scale var(--dur-4) var(--ease-out); }
+    .card a:hover .cover img { scale: 1.035; }
+    /* no cover: a perfboard of dots with one port light in the corner, lit brighter on hover */
+    .ph { position: absolute; inset: 0; background: radial-gradient(circle, var(--color-rule) 1px, transparent 1.5px) 0 0 / 14px 14px; }
+    .ph::after { content: ""; position: absolute; right: var(--space-3); bottom: var(--space-3); width: .55rem; height: .55rem; background: var(--color-text-faint); transition: background var(--dur-2); }
+    .card a:hover .ph::after { background: var(--color-accent); }
+    /* hover: the card's edge lights and a port light switches on in its corner */
+    .card a::after { content: ""; position: absolute; z-index: 3; top: var(--space-3); right: var(--space-3); width: .45rem; height: .45rem; background: var(--color-accent); transform: scale(0); transition: transform var(--dur-2) var(--ease-out); }
+    /* the frame is its own layer above the cover, so it wraps the whole card, picture included */
+    .card a::before { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; border: 1px solid color-mix(in srgb, var(--color-accent) 60%, transparent); opacity: 0; transition: opacity var(--dur-2); }
+    .card a:is(:hover, :focus-visible) { background: var(--color-surface); }
+    .card a:is(:hover, :focus-visible)::before { opacity: 1; }
+    .card a:is(:hover, :focus-visible)::after { transform: scale(1); }
+
+    .meta { display: flex; flex-wrap: wrap; gap: .25rem var(--space-2); padding-right: var(--space-3); color: var(--color-text-muted); }
+    .draft { color: var(--color-accent); }
+    .title { width: fit-content; margin-top: var(--space-1); font: 600 var(--step-1) / 1.45 var(--font-serif); color: var(--color-text-strong); text-wrap: balance; }
+    .desc { color: var(--color-text-muted); font-size: .9375em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; text-align: justify; }
+    :lang(en) > .desc { text-align: start; text-wrap: pretty; }
+    .tags { margin-top: auto; padding-top: var(--space-1); color: var(--color-text-muted); white-space: pre-wrap; }
+
+    /* the newest post lies on its side: cover on the left, text on the right */
+    @media (min-width: 600px) {
+      .featured a { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .featured .cover { aspect-ratio: auto; min-height: 20rem; border-bottom: 0; border-right: 1px solid var(--color-rule); }
+    }
+    .featured .title { font-size: var(--step-2); line-height: 1.35; }
+  }
+</style>

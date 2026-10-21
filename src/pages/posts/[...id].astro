@@ -1,0 +1,191 @@
+---
+import Base from "../../layouts/Base.astro";
+import { render } from "astro:content";
+import { Image, getImage } from "astro:assets";
+import { getPosts, minutes, tagHref, ui, vtName, ymd, type Post } from "../../posts";
+import "../../styles/prose.css";
+
+export async function getStaticPaths() {
+  const entries = await getPosts();
+  return entries.map(({ post }, i) => ({
+    params: { id: post.id },
+    props: { post, newer: entries[i - 1]?.post, older: entries[i + 1]?.post },
+  }));
+}
+interface Props { post: Post; newer?: Post; older?: Post }
+const { post, newer, older } = Astro.props;
+const { title, description, date, updated, tags, lang, cover, coverAlt } = post.data;
+// the cover doubles as the share preview, cut to the 1200×630 that social cards expect
+const og = cover && (await getImage({ src: cover, width: 1200, height: 630, fit: "cover", format: "jpg", quality: 82 })).src;
+const { Content, headings } = await render(post);
+let section = 0; // h2s carry the same 01, 02… numbers the article prints beside them
+const toc = headings.filter((h) => (h.depth === 2 || h.depth === 3) && h.slug !== "footnote-label")
+  .map((h) => ({ ...h, no: h.depth === 2 ? String(++section).padStart(2, "0") : "" }));
+const url = new URL(`/posts/${post.id}/`, Astro.site).href;
+const jsonld = {
+  "@context": "https://schema.org", "@type": "BlogPosting", headline: title, description, url, inLanguage: lang === "zh" ? "zh-Hant-TW" : "en",
+  datePublished: date.toISOString(), dateModified: (updated ?? date).toISOString(), keywords: tags,
+  author: { "@type": "Person", name: "Fearnot", url: "https://fearnot.tw/" },
+};
+---
+<Base title={`${title} — Fearnot Logbook`} description={description} lang={lang} article={{ published: date, modified: updated, tags }} image={og} jsonld={jsonld}>
+  {/* reading progress: a hairline across the top of the window, with the brand square riding its tip */}
+  <div class="progress" aria-hidden="true"><span></span></div>
+
+  <article class="post">
+    <header class="head">
+      <p class="meta mono enter" style="--i: 2">
+        {post.data.draft && <span class="draft">draft · 不會部署</span>}
+        <time datetime={date.toISOString()}>{ymd(date)}</time>
+        <span>{ui.min[lang](minutes(post.body))}</span>
+        {updated && <span>{ui.updated[lang]} <time datetime={updated.toISOString()}>{ymd(updated)}</time></span>}
+      </p>
+      <h1 class="title" style={`view-transition-name: ${vtName(post.id)}`}>{title}</h1>
+      <p class="dek enter" style="--i: 5">{description}</p>
+      {tags.length > 0 && <ul class="tags mono enter" style="--i: 6">{tags.map((t) => <li><a href={tagHref(t)}>#{t}</a></li>)}</ul>}
+    </header>
+    {cover && (
+      <figure class="cover">
+        <Image src={cover} alt={coverAlt ?? ""} widths={[800, 1200, 1800, 2400]} sizes="(max-width: 1280px) 100vw, 1180px" loading="eager" fetchpriority="high" style={`view-transition-name: c-${vtName(post.id)}`} />
+        {coverAlt && <figcaption class="mono muted">{coverAlt}</figcaption>}
+      </figure>
+    )}
+
+    <div class="layout">
+      {toc.length > 2 && (
+        <nav class="toc" aria-labelledby="toc-label">
+          {/* one list for every width: a fold-out box above the text on narrow screens, a pinned sidebar on wide ones */}
+          <details data-toc-box>
+            <summary class="mono" id="toc-label">{ui.contents[lang]}<span class="muted"> · {section || toc.length}</span></summary>
+            <ol>{toc.map((h) => (
+              <li class={`d${h.depth}`}><a href={`#${h.slug}`} data-toc={h.slug}>{h.no && <span class="no mono">{h.no}</span>}<span class="t">{h.text}</span></a></li>
+            ))}</ol>
+          </details>
+        </nav>
+      )}
+      <div class="prose" data-copy={ui.copy[lang]} data-copied={ui.copied[lang]}>
+        <Content />
+      </div>
+    </div>
+
+    <footer class="end">
+      <p class="eof mono rule" aria-hidden="true"><span class="status"></span>EOF</p>
+      <nav class="pager" aria-label={lang === "zh" ? "其他文章" : "More posts"}>
+        {older ? <a class="older" href={`/posts/${older.id}/`}><span class="mono muted">← {ui.prev[lang]}</span><span class="t">{older.data.title}</span></a> : <span />}
+        {newer ? <a class="newer" href={`/posts/${newer.id}/`}><span class="mono muted">{ui.next[lang]} →</span><span class="t">{newer.data.title}</span></a> : <a class="newer" href="/"><span class="mono muted">↑</span><span class="t">{ui.back[lang]}</span></a>}
+      </nav>
+    </footer>
+  </article>
+</Base>
+
+<script>
+  // Copy buttons on code blocks; the label text lives on .prose so it follows the post's language.
+  const prose = document.querySelector<HTMLElement>(".prose");
+  prose?.querySelectorAll("pre").forEach((pre) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "copy mono";
+    btn.textContent = prose.dataset.copy!;
+    btn.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(pre.querySelector("code")?.innerText ?? pre.innerText); } catch { return; }
+      btn.textContent = prose.dataset.copied!;
+      setTimeout(() => (btn.textContent = prose.dataset.copy!), 1600);
+    });
+    const wrap = document.createElement("div");
+    wrap.className = "code";
+    pre.replaceWith(wrap);
+    wrap.append(pre, btn);
+  });
+
+  // Table of contents: the section being read lights its port (the last heading above the top third of the window).
+  // the contents box is always open as a sidebar; on narrow screens it starts folded and closes after a jump
+  const box = document.querySelector<HTMLDetailsElement>("[data-toc-box]");
+  const wide = matchMedia("(min-width: 1180px)");
+  const sync = () => box && (box.open = wide.matches);
+  sync();
+  wide.addEventListener("change", sync);
+  box?.addEventListener("click", (e) => { if (!wide.matches && (e.target as Element).closest("a")) box.open = false; });
+
+  const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-toc]")];
+  const heads = links.map((a) => document.getElementById(a.dataset.toc!));
+  if (links.length) {
+    const spy = () => {
+      let cur = 0;
+      heads.forEach((h, i) => { if (h && h.getBoundingClientRect().top < innerHeight * 0.3) cur = i; });
+      links.forEach((a, i) => (i === cur ? a.setAttribute("aria-current", "location") : a.removeAttribute("aria-current")));
+    };
+    addEventListener("scroll", spy, { passive: true });
+    spy();
+  }
+</script>
+
+<style>
+  @layer components {
+    .progress { position: fixed; inset: 0 0 auto; z-index: 5; height: 2px; pointer-events: none; }
+    .progress::before, .progress span { content: ""; position: absolute; top: 0; left: 0; display: none; }
+    @supports (animation-timeline: scroll()) {
+      .progress::before { display: block; width: 100%; height: 1px; background: var(--color-accent); transform-origin: left; animation: draw linear both; animation-timeline: scroll(root); }
+      .progress span { display: block; width: 6px; height: 6px; background: var(--color-accent); animation: ride linear both; animation-timeline: scroll(root); }
+    }
+    @keyframes ride { from { left: 0; } to { left: calc(100% - 6px); } }
+
+    .head { max-width: 58rem; padding-block: clamp(3rem, 1rem + 7vw, 7rem) var(--space-4); }
+    .meta { display: flex; flex-wrap: wrap; gap: .25rem var(--space-3); color: var(--color-text-muted); margin-bottom: var(--space-3); }
+    .meta .draft { color: var(--color-accent); }
+    .head .title { width: fit-content; font: 600 var(--step-4) / 1.15 var(--font-serif); letter-spacing: var(--tracking-display); color: var(--color-text-strong); text-wrap: balance; }
+    :global(:root:lang(zh-Hant-TW)) .head .title { font-size: clamp(2.25rem, 1.4rem + 3.6vw, 4.25rem); line-height: 1.3; letter-spacing: .01em; }
+    .dek { font-size: var(--step-2); line-height: 1.6; color: var(--color-text-muted); max-width: 32em; margin-top: var(--space-3); text-align: justify; }
+    :global(:root:lang(en)) .dek { text-align: start; text-wrap: pretty; }
+    /* cover: as wide as the page, cropped to a band so the text still starts above the fold */
+    .cover { margin-bottom: var(--space-5); }
+    .cover img { width: 100%; aspect-ratio: 21 / 9; max-height: 72vh; object-fit: cover; border: var(--border); background: var(--color-surface); }
+    .cover figcaption { margin-top: var(--space-1); }
+    @media (max-width: 599px) { .cover { margin-inline: calc(-1 * var(--gutter)); } .cover img { aspect-ratio: 16 / 9; border-inline: 0; } .cover figcaption { padding-inline: var(--gutter); } }
+    .tags { display: flex; flex-wrap: wrap; gap: .25rem var(--space-2); margin-top: var(--space-3); }
+    .tags a { display: inline-block; padding-block: .3rem; color: var(--color-text-muted); text-decoration: none; }
+    .tags a:hover { color: var(--color-accent); }
+
+    /* article column on the reading measure; on wide screens the contents list hangs in the left margin */
+    .layout { display: grid; grid-template-columns: minmax(0, var(--measure)); justify-content: start; }
+    @media (min-width: 1180px) {
+      .layout { grid-template-columns: 17rem minmax(0, var(--measure)); gap: var(--space-5); }
+      .toc { position: sticky; top: var(--space-4); align-self: start; max-height: calc(100vh - 2 * var(--space-4)); overflow: auto; scrollbar-width: thin; }
+      .toc summary { pointer-events: none; }
+      .toc summary::after { display: none; }
+      .layout:not(:has(.toc)) { padding-left: calc(17rem + var(--space-5)); grid-template-columns: minmax(0, var(--measure)); }
+    }
+    /* narrow screens: a ruled box above the text */
+    @media (max-width: 1179px) {
+      .toc { margin-bottom: var(--space-4); border-block: var(--border); max-width: var(--measure); }
+      .toc summary { padding-block: var(--space-2); cursor: pointer; }
+      .toc ol { padding-bottom: var(--space-2); }
+    }
+    .toc summary { display: flex; justify-content: space-between; list-style: none; color: var(--color-text-muted); margin-bottom: var(--space-1); }
+    .toc summary::-webkit-details-marker { display: none; }
+    .toc summary::after { content: "+"; font-family: var(--font-mono); color: var(--color-text-faint); }
+    .toc details[open] summary::after { content: "−"; }
+    .toc summary span { margin-right: auto; }
+
+    /* entries: serif at near body size; h2s lead with their section number, h3s sit indented under them */
+    .toc a { position: relative; display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); align-items: baseline; padding: .45rem 0 .45rem .9rem;
+      color: var(--color-text-muted); text-decoration: none; font-size: var(--step-0); line-height: 1.5; border-left: 1px solid var(--color-rule); transition: color var(--dur-1), border-color var(--dur-2); }
+    .toc .d3 a { padding-block: .3rem; font-size: .9375rem; }
+    .toc .d3 .t { grid-column: 2; }
+    .toc .no { font-size: var(--step--1); color: var(--color-text-faint); transition: color var(--dur-2); }
+    .toc a:hover { color: var(--color-text); }
+    /* the section being read: its rule turns amber and its number lights */
+    .toc a[aria-current] { color: var(--color-text-strong); border-left-color: var(--color-accent); }
+    .toc a[aria-current] .no { color: var(--color-accent); }
+
+    .end { margin-top: var(--space-5); }
+    @media (min-width: 1180px) { .end { padding-left: calc(17rem + var(--space-5)); } }
+    .eof { display: flex; justify-content: flex-end; align-items: center; gap: .5rem; padding-top: var(--space-2); color: var(--color-text-faint); max-width: var(--measure); }
+    .eof .status { margin: 0; }
+    .pager { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-4); max-width: var(--measure); }
+    .pager a { display: flex; flex-direction: column; gap: .35rem; text-decoration: none; }
+    .pager .newer { text-align: right; align-items: flex-end; }
+    .pager .t { font-weight: 600; text-wrap: balance; transition: color var(--dur-1); }
+    .pager a:hover .t { color: var(--color-accent); }
+    @media (max-width: 560px) { .pager { grid-template-columns: 1fr; } .pager .newer { text-align: left; align-items: flex-start; } }
+  }
+</style>

@@ -1,0 +1,116 @@
+/* Design tokens. Three palettes, each designed on its own rather than inverted:
+     dark  "night shift"  default, server room after hours
+     light "printout"     warm paper, for daylight and for people who prefer it
+     paper                pure white, Resume and CV only (screen and print)
+   Primitives describe values; semantic tokens describe roles. Components use semantic tokens only. */
+@layer tokens {
+  :root {
+    /* ── color: primitives ── */
+    --gray-950: #121413; /* page */
+    --gray-900: #191c1b; /* raised surface */
+    --gray-800: #2a2e2c; /* hairlines */
+    --gray-600: #5d5f59; /* disabled, decorative */
+    --gray-500: #8f8c83; /* secondary text */
+    --gray-200: #d8d5cb; /* primary text */
+    --gray-50: #f1eee6;  /* emphasis */
+    --amber-400: #e8a04a;
+    --paper-100: #f3f1ea; /* light page */
+    --paper-200: #eae7dd; /* light raised surface */
+    --paper-300: #d3cfc4; /* light hairlines */
+    --paper-500: #9a978e; /* light decorative */
+    --ink-600: #66645d;   /* light secondary text */
+    --ink-900: #1b1b19;   /* light primary text */
+    --ink-950: #0e0e0d;   /* light emphasis */
+    --rust-600: #b4470f;  /* the amber, deepened until it holds AA on paper */
+
+    /* ── color: semantic ── */
+    --color-bg: var(--gray-950);
+    --color-surface: var(--gray-900);
+    --color-rule: var(--gray-800);
+    --color-text: var(--gray-200);
+    --color-text-muted: var(--gray-500);
+    --color-text-strong: var(--gray-50);
+    --color-text-faint: var(--gray-600);
+    --color-accent: var(--amber-400);
+    --color-focus: var(--amber-400);
+    --color-selection: rgb(232 160 74 / .28);
+
+    /* ── type: families ── */
+    --font-serif: "Literata", "Noto Serif TC", "Songti TC", serif;
+    --font-display: "Literata Display", "Literata", "Noto Serif TC", serif;
+    /* CJK inside small mono labels uses the system sans: crisp at 12px and zero bytes */
+    --font-mono: "Fragment Mono", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", ui-monospace, monospace;
+
+    /* ── type: fluid scale (360px → 1280px viewport) ── */
+    --step--1: clamp(.75rem, .73rem + .08vw, .8125rem);
+    --step-0: clamp(1rem, .97rem + .15vw, 1.0625rem);
+    --step-1: clamp(1.125rem, 1.05rem + .35vw, 1.3125rem);
+    --step-2: clamp(1.25rem, 1.12rem + .6vw, 1.625rem);
+    --step-3: clamp(1.75rem, 1.4rem + 1.6vw, 2.75rem);
+    --step-4: clamp(2.75rem, 1.7rem + 4.6vw, 5rem);
+
+    /* ── type: leading & tracking ── */
+    --leading-display: 1;
+    --leading-snug: 1.4;
+    --leading-zh: 1.8;  /* CJK needs more air than Latin */
+    --leading-en: 1.65;
+    --tracking-display: -.015em;
+    --tracking-mono: .02em;
+    --tracking-zh: .02em;
+
+    /* ── space ── */
+    --space-1: .5rem;
+    --space-2: 1rem;
+    --space-3: 1.5rem;
+    --space-4: 2.5rem;
+    --space-5: 4rem;
+    --section: clamp(2rem, 1.4rem + 2.5vw, 3.25rem);
+    --gutter: clamp(1.5rem, .5rem + 5vw, 5rem);
+    --measure: 720px;
+
+    /* ── shape & depth: square corners, no shadows; depth comes from hairlines ── */
+    --radius: 0;
+    --border: 1px solid var(--color-rule);
+    --shadow: none;
+
+    /* ── motion ── */
+    --dur-1: 120ms;  /* color, underline */
+    --dur-2: 200ms;  /* hover, press */
+    --dur-3: 360ms;  /* small layout change */
+    --dur-4: 600ms;  /* entrance */
+    --dur-5: 900ms;  /* hero name, the one long move */
+    --stagger: 60ms;
+    --ease-out: cubic-bezier(.2, .7, .1, 1);
+    --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme]) {
+      --color-bg: var(--paper-100); --color-surface: var(--paper-200); --color-rule: var(--paper-300);
+      --color-text: var(--ink-900); --color-text-muted: var(--ink-600); --color-text-strong: var(--ink-950);
+      --color-text-faint: var(--paper-500); --color-accent: var(--rust-600); --color-focus: var(--rust-600);
+      --color-selection: rgb(180 71 15 / .18);
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --color-bg: var(--paper-100); --color-surface: var(--paper-200); --color-rule: var(--paper-300);
+    --color-text: var(--ink-900); --color-text-muted: var(--ink-600); --color-text-strong: var(--ink-950);
+    --color-text-faint: var(--paper-500); --color-accent: var(--rust-600); --color-focus: var(--rust-600);
+    --color-selection: rgb(180 71 15 / .18);
+    color-scheme: light;
+  }
+  :root[data-theme="paper"] {
+    --color-bg: #fff; --color-surface: #f5f5f3; --color-rule: #dcdcd8;
+    --color-text: #161616; --color-text-muted: #555; --color-text-strong: #000;
+    --color-text-faint: #9a9a96; --color-accent: var(--rust-600); --color-focus: var(--rust-600);
+    --color-selection: rgb(180 71 15 / .16);
+    color-scheme: light;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; --dur-4: 0ms; --dur-5: 0ms; --stagger: 0ms; }
+  }
+}
