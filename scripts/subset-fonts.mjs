@@ -22,7 +22,7 @@ const TEXT_EXT = new Set(FROM_DIST ? [".html"] : [".astro", ".ts", ".md", ".mdx"
 const GF = "https://raw.githubusercontent.com/google/fonts/main/ofl/";
 
 // the hero word and the year numerals
-const DISPLAY = "Logbook0123456789";
+const DISPLAY = "Fearnotes0123456789";
 // ASCII plus the typographic marks copy commonly uses
 const LATIN = range(0x20, 0x7e) + " ©·×éèüöä–—‘’“”…•→←↑↓↗€№";
 // CJK punctuation and full-width forms, kept even before any copy uses them

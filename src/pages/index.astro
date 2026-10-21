@@ -11,11 +11,11 @@ for (const { post } of entries) for (const t of post.data.tags) counts.set(t, (c
 const tags = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 const total = String(entries.length).padStart(3, "0");
 ---
-<Base title="Fearnot Logbook — 資安與網路維運的工作日誌" description="Fearnot 的工作日誌：資訊安全、CTF、網路維運，以及帶著南部高中生一起學的那些事。">
+<Base title="Fearnotes — 資安與網路維運的工作日誌" description="Fearnot 的工作日誌：資訊安全、CTF、網路維運，以及帶著南部高中生一起學的那些事。">
   <link slot="head" rel="preload" href={font("literata-display")} as="font" type="font/woff2" crossorigin />
 
   <header class="hero">
-    <h1 class="name"><span class="word">Logbook</span><span class="cursor" aria-hidden="true" data-cursor></span></h1>
+    <h1 class="name"><span class="word">Fearnotes</span><span class="cursor" aria-hidden="true" data-cursor></span></h1>
     <div class="intro">
       <p class="lede"><span>資訊安全、CTF 與網路維運的工作日誌。</span><span>寫給未來的自己，</span><span>也寫給正在入門、還有點害怕的你。</span></p>
       <p class="mono muted enter" style="--i: 10">{total} entries · last write {entries[0] ? ymd(entries[0].post.data.date) : "—"} · <a href="/rss.xml">RSS</a></p>

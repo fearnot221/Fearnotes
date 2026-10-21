@@ -9,7 +9,7 @@ const byTag = new Map<string, typeof entries>();
 for (const e of entries) for (const t of e.post.data.tags) byTag.set(t, [...(byTag.get(t) ?? []), e]);
 const tags = [...byTag].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
 ---
-<Base title="Tags — Fearnot Logbook" description="依標籤瀏覽 Fearnot Logbook 的所有文章。">
+<Base title="Tags — Fearnotes" description="依標籤瀏覽 Fearnotes 的所有文章。">
   <header class="head">
     <p class="mono muted enter" style="--i: 2">{String(tags.length).padStart(2, "0")} tags · {String(entries.length).padStart(3, "0")} entries</p>
     <h1>Tags</h1>

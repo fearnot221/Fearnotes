@@ -10,7 +10,7 @@ export async function getStaticPaths() {
 }
 const { tag, entries } = Astro.props;
 ---
-<Base title={`#${tag} — Fearnot Logbook`} description={`標籤為 #${tag} 的 ${entries.length} 篇文章。`}>
+<Base title={`#${tag} — Fearnotes`} description={`標籤為 #${tag} 的 ${entries.length} 篇文章。`}>
   <header class="head">
     <p class="mono muted enter" style="--i: 2"><a href="/tags/">tags</a> / {String(entries.length).padStart(2, "0")} entries</p>
     <h1>#{tag}</h1>
