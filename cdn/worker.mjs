@@ -6,6 +6,10 @@ export default {
       return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
     }
     const url = new URL(request.url);
+    // Keep the sample photo URL shared before it moved to a permanent filename.
+    if (url.pathname === "/_astro/night-shift-demo.doBC5Ccp_xB3RB.webp") {
+      return Response.redirect("https://cdn.fearnot.tw/blog/night-shift-demo.webp", 301);
+    }
     // Assign the path after fixing the origin: //example.com must never turn this into an open proxy.
     const upstream = new URL(ORIGIN);
     upstream.pathname = url.pathname;

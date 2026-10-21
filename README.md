@@ -63,7 +63,7 @@ npm run preview
 
 Astro 的 `assetsPrefix` 處理建置產生的圖片、`srcset` 與 JS/CSS；字型網址保留內容雜湊；建置後處理會將 HTML 中指向 `public/` 實際存在檔案的 `src`、`srcset`、`poster`、`href` 與分享圖片改至 CDN，包含 Markdown 的圖片、附件與原生 HTML。不會修改文章連結、外站連結、程式碼範例或 inline data URL。
 
-新增文章圖片仍放在文章旁；下載附件放在 `public/downloads/`，例如 `[下載筆記](/downloads/notes.pdf)`。外部圖片請先在有權使用的前提下存入專案，再改用本機路徑，否則外部網址仍會直接請求原站。自行撰寫的 inline style、public CSS 或 JS 若引用 `/images/...` 等固定路徑，請直接使用完整 CDN 網址；這些字串不屬於 HTML 資源屬性，不會被後處理改寫。
+需要自訂固定圖片網址時，將檔案放在 `public/blog/`，例如 `public/blog/photo.webp` 對應 `https://cdn.fearnot.tw/blog/photo.webp`，文章以 `/blog/photo.webp` 引用。這類公開檔案會保留原檔名與格式，請先壓縮圖片，並在 HTML 的 `img` 標示原始寬高以預留空間。文章旁的相對路徑圖片仍會由 Astro 最佳化並產生帶雜湊的網址；下載附件放在 `public/downloads/`，例如 `[下載筆記](/downloads/notes.pdf)`。外部圖片請先在有權使用的前提下存入專案，再改用本機路徑，否則外部網址仍會直接請求原站。自行撰寫的 inline style、public CSS 或 JS 若引用 `/images/...` 等固定路徑，請直接使用完整 CDN 網址；這些字串不屬於 HTML 資源屬性，不會被後處理改寫。
 
 更新 Worker 時重跑 `npm run deploy:cdn`；一般文章與素材仍沿用 GitHub Pages 發布流程。相同檔名的檔案更新最多可能延遲 10 分鐘，需即時更新時請換檔名。若要停用 CDN，刪除 GitHub 的 `PUBLIC_CDN_URL` 變數並重新部署 blog，再移除 Worker。
 

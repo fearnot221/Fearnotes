@@ -7,7 +7,7 @@ tags: [meta]
 
 這裡是 Fearnot 的工作日誌。打 CTF、維運網路、帶社群課程的過程中，有很多「當下想通、過一個月就忘」的東西，這個部落格就是用來把它們留下來的地方。
 
-![琥珀色檯燈照亮筆電、鍵盤與筆記本，後方是網路設備機櫃](./images/night-shift-demo.jpg)
+<p><img src="/blog/night-shift-demo.webp" alt="琥珀色檯燈照亮筆電、鍵盤與筆記本，後方是網路設備機櫃" width="1536" height="1024" loading="lazy" decoding="async" /></p>
 
 *夜班工作桌示意照片（AI 生成），用來展示文章圖片與自有 CDN 的載入效果。*
 

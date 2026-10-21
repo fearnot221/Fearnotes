@@ -54,3 +54,12 @@ test("write requests never reach the origin", async (t) => {
   assert.equal((await worker.fetch(new Request("https://cdn.fearnot.tw/a", { method: "POST" }))).status, 405);
   assert.equal(fetch.mock.callCount(), 0);
 });
+
+
+test("the previously shared sample photo redirects to its permanent filename", async (t) => {
+  const fetch = t.mock.method(globalThis, "fetch", () => { throw new Error("must not fetch"); });
+  const response = await worker.fetch(new Request("https://cdn.fearnot.tw/_astro/night-shift-demo.doBC5Ccp_xB3RB.webp"));
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get("Location"), "https://cdn.fearnot.tw/blog/night-shift-demo.webp");
+  assert.equal(fetch.mock.callCount(), 0);
+});

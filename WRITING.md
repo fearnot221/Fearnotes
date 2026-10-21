@@ -176,6 +176,16 @@ print("hello")
 - 方括號裡的描述會提供給螢幕閱讀器，請照實描述圖片內容。
 - **圖說**：圖片下方**空一行**，再寫一行只有 `*強調*` 的文字，就會排成等寬小字圖說。沒有空行的話，那行字會和圖片擠在同一段，不會變成圖說。
 
+#### 固定 CDN 圖片網址
+
+將照片放在 `public/blog/`，檔名由你決定。例如 `public/blog/night-shift-demo.webp`，發布後就是 `https://cdn.fearnot.tw/blog/night-shift-demo.webp`。文章使用本機路徑，建置時會自動切換至 CDN：
+
+```html
+<p><img src="/blog/night-shift-demo.webp" alt="夜班工作桌" width="1536" height="1024" loading="lazy" decoding="async" /></p>
+```
+
+`width` 與 `height` 請填圖片實際尺寸，讓瀏覽器預留空間；圖片仍會隨文章欄寬縮放。這個方式保留檔名與格式，不經 Astro 轉檔，請先壓縮圖片。也可以使用 `![圖片描述](/blog/photo.webp)`，但 Markdown 不會替 `public/` 的圖片推算尺寸。更新同名圖片最多可能保留 10 分鐘舊快取，需要立即更新請換檔名。
+
 ### 註腳
 
 ```md
