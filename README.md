@@ -41,6 +41,34 @@ npm run dev
 - **GitHub Pages**：Settings → Pages 的 Source 為 **GitHub Actions**，Custom domain 為 `blog.fearnot.tw`，憑證核發後啟用 **Enforce HTTPS**。
 - **DNS（Cloudflare）**：`CNAME blog → fearnot221.github.io`，Proxy 設為 **DNS only**（灰色雲朵），否則 GitHub 無法核發 HTTPS 憑證。
 
+## 自有 CDN
+
+圖片、字型、JS/CSS、favicon 與公開附件可透過 `https://cdn.fearnot.tw` 提供，文章、RSS、sitemap 與 canonical 網址仍留在 `https://blog.fearnot.tw`。
+
+`cdn/worker.mjs` 是 Cloudflare Worker：只向固定的 blog 來源取檔，保留路徑與 query string，於 Cloudflare 邊緣快取 10 分鐘。字型與 JS 模組附上 CORS 標頭；錯誤不快取，文章頁與來源重新導向會回到 blog。它是快取代理，檔案仍隨 GitHub Pages 一起發布，不需要另外同步儲存桶。流量受 Cloudflare Workers 帳戶方案限制。
+
+### 第一次啟用
+
+1. 確認 `fearnot.tw` 由你的 Cloudflare 帳戶管理。
+2. 本機執行 `npx wrangler login`，登入該帳戶，再執行 `npm run deploy:cdn`。若有多個帳戶，以 `CLOUDFLARE_ACCOUNT_ID` 指定帳戶。Wrangler 會建立 `fearnotes-cdn` Worker，並透過 Custom Domain 建立 `cdn.fearnot.tw` 的 DNS 與憑證；不要手動把 CDN CNAME 指向 GitHub Pages。
+3. 等網域憑證啟用，驗證 `curl -I https://cdn.fearnot.tw/fonts/literata.woff2`：應為 `200`、`Content-Type: font/woff2` 與 `Access-Control-Allow-Origin: *`。也請確認 `https://cdn.fearnot.tw/p/hello-world/` 會重新導向 blog。
+4. 在 GitHub 儲存庫 Settings → Secrets and variables → Actions → **Variables** 新增 `PUBLIC_CDN_URL`，值為 `https://cdn.fearnot.tw`（這不是密鑰），再發布這份變更。**先驗證 CDN 可用，再設定變數**，以免正式站引用尚未存在的網域。
+
+未設定變數時，網站使用原本同網域的檔案。`npm run dev` 也使用本機檔案。要預覽 CDN 版建置：
+
+```sh
+PUBLIC_CDN_URL=https://cdn.fearnot.tw npm run build
+npm run preview
+```
+
+Astro 的 `assetsPrefix` 處理建置產生的圖片、`srcset` 與 JS/CSS；字型網址保留內容雜湊；建置後處理會將 HTML 中指向 `public/` 實際存在檔案的 `src`、`srcset`、`poster`、`href` 與分享圖片改至 CDN，包含 Markdown 的圖片、附件與原生 HTML。不會修改文章連結、外站連結、程式碼範例或 inline data URL。
+
+新增文章圖片仍放在文章旁；下載附件放在 `public/downloads/`，例如 `[下載筆記](/downloads/notes.pdf)`。外部圖片請先在有權使用的前提下存入專案，再改用本機路徑，否則外部網址仍會直接請求原站。自行撰寫的 inline style、public CSS 或 JS 若引用 `/images/...` 等固定路徑，請直接使用完整 CDN 網址；這些字串不屬於 HTML 資源屬性，不會被後處理改寫。
+
+更新 Worker 時重跑 `npm run deploy:cdn`；一般文章與素材仍沿用 GitHub Pages 發布流程。相同檔名的檔案更新最多可能延遲 10 分鐘，需即時更新時請換檔名。若要停用 CDN，刪除 GitHub 的 `PUBLIC_CDN_URL` 變數並重新部署 blog，再移除 Worker。
+
+參考：[Cloudflare fetch 快取](https://developers.cloudflare.com/workers/examples/cache-using-fetch/)、[Worker Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)。
+
 ## 授權
 
 字型為 Literata、Fragment Mono、Noto Serif TC，採 SIL Open Font License。

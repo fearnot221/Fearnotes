@@ -1,6 +1,7 @@
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 import { execFile } from "node:child_process";
+import { cdnOrigin } from "./scripts/cdn.mjs";
 
 // The CJK fonts only hold the characters the site uses. In dev, re-cut them whenever a source file changes,
 // or new text would fall back glyph by glyph to a system font and mix two typefaces in one line.
@@ -56,7 +57,7 @@ export default defineConfig({
   site: "https://blog.fearnot.tw",
   trailingSlash: "always",
   devToolbar: { enabled: false },
-  build: { inlineStylesheets: "always" },
+  build: { inlineStylesheets: "always", assetsPrefix: cdnOrigin(process.env.PUBLIC_CDN_URL) },
   markdown: { shikiConfig: { theme: nightShift } },
   vite: { plugins: [refreshFonts] },
   // posts moved from /posts/<post>/ to /p/<post>/: links shared before the move still land on the post

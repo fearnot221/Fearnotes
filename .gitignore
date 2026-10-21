@@ -3,3 +3,4 @@ dist/
 .astro/
 .fonts-cache/
 .DS_Store
+.wrangler/

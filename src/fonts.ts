@@ -1,7 +1,8 @@
 import hashes from "./fonts.json";
 
 /** Font URL with a content hash: every re-cut subset gets a new URL, so no browser keeps using a copy that lacks new characters. */
-export const font = (name: keyof typeof hashes) => `/fonts/${name}.woff2?v=${hashes[name]}`;
+const cdn = import.meta.env.PROD ? (import.meta.env.PUBLIC_CDN_URL ?? "").replace(/\/$/, "") : "";
+export const font = (name: keyof typeof hashes) => `${cdn}/fonts/${name}.woff2?v=${hashes[name]}`;
 
 export const fontFaces = [
   `@font-face { font-family: "Literata"; src: url("${font("literata")}") format("woff2"); font-weight: 400 600; font-display: swap; }`,

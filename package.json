@@ -5,11 +5,12 @@
   "scripts": {
     "fonts": "node --no-warnings scripts/subset-fonts.mjs",
     "dev": "npm run fonts && astro dev",
-    "build": "astro build && node --no-warnings scripts/subset-fonts.mjs --dist",
+    "build": "astro build && node --no-warnings scripts/subset-fonts.mjs --dist && node scripts/cdn.mjs",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "node --no-warnings src/fuzzy.test.ts",
-    "test:fonts": "node --no-warnings scripts/fonts.test.mjs"
+    "test": "node --no-warnings src/fuzzy.test.ts && node --test scripts/cdn.test.mjs cdn/worker.test.mjs",
+    "test:fonts": "node --no-warnings scripts/fonts.test.mjs",
+    "deploy:cdn": "wrangler deploy --config cdn/wrangler.jsonc"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.19",
@@ -19,7 +20,9 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.11",
     "harfbuzzjs": "^1.6.3",
+    "parse5": "^8.0.1",
     "subset-font": "^2.9.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.151.3"
   }
 }

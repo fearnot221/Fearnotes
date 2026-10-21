@@ -23,6 +23,8 @@ jobs:
           path: .fonts-cache
           key: fonts-v1
       - name: Install, check, build, and upload
+        env:
+          PUBLIC_CDN_URL: ${{ vars.PUBLIC_CDN_URL }}
         uses: withastro/action@v6
         with:
           node-version: 24
