@@ -26,6 +26,9 @@ export const vtName = (id: string) => `t-${id.replace(/[^\p{L}\p{N}_-]/gu, "-")}
 
 export const tagHref = (t: string) => `/tags/${encodeURIComponent(t)}/`;
 
+/** the one place a post's address is decided: /p/<file name>/ */
+export const postHref = (id: string) => `/p/${id}/`;
+
 export const ui = {
   min: { zh: (n: number) => `${n} 分鐘`, en: (n: number) => `${n} min read` },
   contents: { zh: "目錄", en: "Contents" },

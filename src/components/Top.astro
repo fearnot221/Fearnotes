@@ -6,7 +6,7 @@ interface Props { lang: Lang }
 const { lang } = Astro.props;
 const here = Astro.url.pathname;
 const nav = [
-  { href: "/", label: "Log", current: here === "/" || here.startsWith("/posts/") },
+  { href: "/", label: "Log", current: here === "/" || here.startsWith("/p/") },
   { href: "/tags/", label: "Tags", current: here.startsWith("/tags/") },
 ];
 ---

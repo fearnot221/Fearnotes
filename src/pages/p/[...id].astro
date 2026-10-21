@@ -2,7 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import { render } from "astro:content";
 import { Image, getImage } from "astro:assets";
-import { getPosts, minutes, tagHref, ui, vtName, ymd, type Post } from "../../posts";
+import { getPosts, minutes, postHref, tagHref, ui, vtName, ymd, type Post } from "../../posts";
 import "../../styles/prose.css";
 
 export async function getStaticPaths() {
@@ -21,7 +21,7 @@ const { Content, headings } = await render(post);
 let section = 0; // h2s carry the same 01, 02… numbers the article prints beside them
 const toc = headings.filter((h) => (h.depth === 2 || h.depth === 3) && h.slug !== "footnote-label")
   .map((h) => ({ ...h, no: h.depth === 2 ? String(++section).padStart(2, "0") : "" }));
-const url = new URL(`/posts/${post.id}/`, Astro.site).href;
+const url = new URL(postHref(post.id), Astro.site).href;
 // plain share URLs: nothing from these services loads until a reader clicks one
 const enc = encodeURIComponent;
 const networks = [
@@ -91,8 +91,8 @@ const jsonld = {
         </ul>
       </section>
       <nav class="pager" aria-label={lang === "zh" ? "其他文章" : "More posts"}>
-        {older ? <a class="older" href={`/posts/${older.id}/`}><span class="mono muted">← {ui.prev[lang]}</span><span class="t">{older.data.title}</span></a> : <span />}
-        {newer ? <a class="newer" href={`/posts/${newer.id}/`}><span class="mono muted">{ui.next[lang]} →</span><span class="t">{newer.data.title}</span></a> : <a class="newer" href="/"><span class="mono muted">↑</span><span class="t">{ui.back[lang]}</span></a>}
+        {older ? <a class="older" href={postHref(older.id)}><span class="mono muted">← {ui.prev[lang]}</span><span class="t">{older.data.title}</span></a> : <span />}
+        {newer ? <a class="newer" href={postHref(newer.id)}><span class="mono muted">{ui.next[lang]} →</span><span class="t">{newer.data.title}</span></a> : <a class="newer" href="/"><span class="mono muted">↑</span><span class="t">{ui.back[lang]}</span></a>}
       </nav>
     </footer>
   </article>

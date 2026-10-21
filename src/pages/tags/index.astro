@@ -2,7 +2,7 @@
 // Every tag as a card: how many posts, when it was last written in, and its three newest titles,
 // so a reader can tell what a tag holds before opening it.
 import Base from "../../layouts/Base.astro";
-import { getPosts, tagHref, ymd } from "../../posts";
+import { getPosts, postHref, tagHref, ymd } from "../../posts";
 
 const entries = await getPosts();
 const byTag = new Map<string, typeof entries>();
@@ -20,7 +20,7 @@ const tags = [...byTag].sort((a, b) => b[1].length - a[1].length || a[0].localeC
         <h2><a href={tagHref(t)}><span class="name">#{t}</span><span class="n mono">{String(list.length).padStart(2, "0")}</span></a></h2>
         <p class="mono muted">last write {ymd(list[0].post.data.date)}</p>
         <ol>
-          {list.slice(0, 3).map(({ post }) => <li><a href={`/posts/${post.id}/`}>{post.data.title}</a></li>)}
+          {list.slice(0, 3).map(({ post }) => <li><a href={postHref(post.id)}>{post.data.title}</a></li>)}
         </ol>
         {list.length > 3 && <a class="all mono" href={tagHref(t)}>全部 {list.length} 篇 →</a>}
       </li>

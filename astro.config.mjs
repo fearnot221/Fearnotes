@@ -51,5 +51,7 @@ export default defineConfig({
   build: { inlineStylesheets: "always" },
   markdown: { shikiConfig: { theme: nightShift } },
   vite: { plugins: [refreshFonts] },
+  // posts moved from /posts/<post>/ to /p/<post>/: links shared before the move still land on the post
+  redirects: { "/posts/[...id]": "/p/[...id]" },
   integrations: [sitemap({ filter: (url) => !/\/404\//.test(url) })],
 });

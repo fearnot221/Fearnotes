@@ -15,7 +15,7 @@ Fearnotes：資訊安全、CTF 與網路維運的工作日誌。延續 [fearnot.
 
 ## 寫文章
 
-在 `src/content/posts/` 新增 Markdown 檔，檔名即網址（`hello-world.md` → `/posts/hello-world/`）：
+在 `src/content/posts/` 新增 Markdown 檔，檔名即網址（`hello-world.md` → `/p/hello-world/`）：
 
 ```md
 ---
@@ -30,7 +30,7 @@ coverAlt: 封面的文字說明  # 選填，同時作為圖說
 ---
 ```
 
-要放封面時，把文章寫成資料夾：`src/content/posts/my-post/index.md` 加上同資料夾的 `cover.jpg`（網址仍是 `/posts/my-post/`）。封面建議 16:9、寬 1600px 以上；建置時會自動縮放成 WebP，並裁成 1200×630 作為社群分享預覽圖。沒有封面的文章，卡片會顯示同尺寸的點陣佔位圖，版面不會參差。
+要放封面時，把文章寫成資料夾：`src/content/posts/my-post/index.md` 加上同資料夾的 `cover.jpg`（網址仍是 `/p/my-post/`）。封面建議 16:9、寬 1600px 以上；建置時會自動縮放成 WebP，並裁成 1200×630 作為社群分享預覽圖。沒有封面的文章，卡片會顯示同尺寸的點陣佔位圖，版面不會參差。
 
 圖片下方緊接一行 `*說明文字*` 會排成圖說；`---` 是三顆方塊的段落停頓。
 

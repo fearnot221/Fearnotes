@@ -3,7 +3,7 @@
 // (cover, number and date, title, summary, tags), so the eye can scan a row; only the newest post on the home page spans two cells.
 // A post without a cover gets a perfboard placeholder of the same size, so rows never go uneven.
 import { Image } from "astro:assets";
-import { minutes, ui, vtName, ymd, type Post } from "../posts";
+import { minutes, postHref, ui, vtName, ymd, type Post } from "../posts";
 
 interface Props { entries: { post: Post }[]; feature?: boolean }
 const { entries, feature = false } = Astro.props;
@@ -25,7 +25,7 @@ const years = Map.groupBy(entries, (e) => ymd(e.post.data.date).slice(0, 4));
             data-desc={post.data.description}
             data-date={ymd(post.data.date)}
           >
-            <a href={`/posts/${post.id}/`} lang={post.data.lang === "en" ? "en" : undefined}>
+            <a href={postHref(post.id)} lang={post.data.lang === "en" ? "en" : undefined}>
               <div class="cover">
                 {post.data.cover
                   ? <Image src={post.data.cover} alt="" widths={[480, 800, 1200]} sizes={feature && y === 0 && i === 0 ? "(max-width: 599px) 100vw, (max-width: 1023px) 100vw, 760px" : "(max-width: 599px) 100vw, (max-width: 1023px) 50vw, 380px"} loading={y === 0 && i < 4 ? "eager" : "lazy"} style={`view-transition-name: c-${vtName(post.id)}`} />
