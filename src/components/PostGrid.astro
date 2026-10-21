@@ -35,7 +35,6 @@ const years = Map.groupBy(entries, (e) => ymd(e.post.data.date).slice(0, 4));
                 <p class="meta mono">
                   <time datetime={post.data.date.toISOString()}>{ymd(post.data.date).slice(5)}</time>
                   <span>{ui.min[post.data.lang](minutes(post.body))}</span>
-                  {post.data.draft && <span class="draft">draft</span>}
                 </p>
                 <h3 class="title" style={`view-transition-name: ${vtName(post.id)}`} data-title={post.data.title}>{post.data.title}</h3>
                 <p class="desc">{post.data.description}</p>
@@ -87,7 +86,6 @@ const years = Map.groupBy(entries, (e) => ymd(e.post.data.date).slice(0, 4));
     .card a:is(:hover, :focus-visible)::after { transform: scale(1); }
 
     .meta { display: flex; flex-wrap: wrap; gap: .25rem var(--space-2); padding-right: var(--space-3); color: var(--color-text-muted); }
-    .draft { color: var(--color-accent); }
     .title { width: fit-content; margin-top: var(--space-1); font: 600 var(--step-1) / 1.45 var(--font-serif); color: var(--color-text-strong); text-wrap: balance; }
     .desc { color: var(--color-text-muted); font-size: .9375em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; text-align: justify; }
     :lang(en) > .desc { text-align: start; text-wrap: pretty; }

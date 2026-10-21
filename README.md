@@ -27,7 +27,6 @@ tags: [ctf, web]
 lang: zh               # 選填，英文文章填 en
 cover: ./cover.jpg     # 選填，相對於文章檔案的路徑
 coverAlt: 封面的文字說明  # 選填，同時作為圖說
-draft: true            # 選填，只在 npm run dev 顯示
 ---
 ```
 

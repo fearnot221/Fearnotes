@@ -22,6 +22,15 @@ let section = 0; // h2s carry the same 01, 02… numbers the article prints besi
 const toc = headings.filter((h) => (h.depth === 2 || h.depth === 3) && h.slug !== "footnote-label")
   .map((h) => ({ ...h, no: h.depth === 2 ? String(++section).padStart(2, "0") : "" }));
 const url = new URL(`/posts/${post.id}/`, Astro.site).href;
+// plain share URLs: nothing from these services loads until a reader clicks one
+const enc = encodeURIComponent;
+const networks = [
+  ["X", `https://x.com/intent/post?text=${enc(title)}&url=${enc(url)}`],
+  ["Facebook", `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`],
+  ["LINE", `https://social-plugins.line.me/lineit/share?url=${enc(url)}`],
+  ["Threads", `https://www.threads.net/intent/post?text=${enc(`${title} ${url}`)}`],
+  ["LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`],
+];
 const jsonld = {
   "@context": "https://schema.org", "@type": "BlogPosting", headline: title, description, url, inLanguage: lang === "zh" ? "zh-Hant-TW" : "en",
   datePublished: date.toISOString(), dateModified: (updated ?? date).toISOString(), keywords: tags,
@@ -35,7 +44,6 @@ const jsonld = {
   <article class="post">
     <header class="head">
       <p class="meta mono enter" style="--i: 2">
-        {post.data.draft && <span class="draft">draft · 不會部署</span>}
         <time datetime={date.toISOString()}>{ymd(date)}</time>
         <span>{ui.min[lang](minutes(post.body))}</span>
         {updated && <span>{ui.updated[lang]} <time datetime={updated.toISOString()}>{ymd(updated)}</time></span>}
@@ -70,6 +78,18 @@ const jsonld = {
 
     <footer class="end">
       <p class="eof mono rule" aria-hidden="true"><span class="status"></span>EOF</p>
+      <section class="share" aria-labelledby="share-label" data-share data-title={title} data-url={url}>
+        <h2 class="mono" id="share-label">{ui.share[lang]}</h2>
+        <div class="link">
+          <label class="sr-only" for="share-url">{ui.share[lang]}</label>
+          <input id="share-url" class="mono" type="text" value={url} readonly data-share-url />
+          <button type="button" class="mono" data-copy-link data-label={ui.copyLink[lang]} data-done={ui.copied[lang]}>{ui.copyLink[lang]}</button>
+        </div>
+        <ul class="mono">
+          {networks.map(([name, href]) => <li><a href={href} target="_blank" rel="noopener noreferrer">{name}<span aria-hidden="true"> ↗</span></a></li>)}
+          <li hidden data-native><button type="button">{ui.more[lang]}</button></li>
+        </ul>
+      </section>
       <nav class="pager" aria-label={lang === "zh" ? "其他文章" : "More posts"}>
         {older ? <a class="older" href={`/posts/${older.id}/`}><span class="mono muted">← {ui.prev[lang]}</span><span class="t">{older.data.title}</span></a> : <span />}
         {newer ? <a class="newer" href={`/posts/${newer.id}/`}><span class="mono muted">{ui.next[lang]} →</span><span class="t">{newer.data.title}</span></a> : <a class="newer" href="/"><span class="mono muted">↑</span><span class="t">{ui.back[lang]}</span></a>}
@@ -96,6 +116,25 @@ const jsonld = {
     pre.replaceWith(wrap);
     wrap.append(pre, btn);
   });
+
+  // Share: copy the link (selecting the field is the fallback when the clipboard is unavailable),
+  // and the system share sheet where the browser offers one, mostly phones
+  const share = document.querySelector<HTMLElement>("[data-share]");
+  if (share) {
+    const field = share.querySelector<HTMLInputElement>("[data-share-url]")!;
+    const copy = share.querySelector<HTMLButtonElement>("[data-copy-link]")!;
+    field.addEventListener("focus", () => field.select());
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(field.value); } catch { field.focus(); return; }
+      copy.textContent = copy.dataset.done!;
+      setTimeout(() => (copy.textContent = copy.dataset.label!), 1600);
+    });
+    const native = share.querySelector<HTMLElement>("[data-native]")!;
+    if (navigator.share) {
+      native.hidden = false;
+      native.querySelector("button")!.addEventListener("click", () => navigator.share({ title: share.dataset.title, url: share.dataset.url }).catch(() => {}));
+    }
+  }
 
   // Table of contents: the section being read lights its port (the last heading above the top third of the window).
   // the contents box is always open as a sidebar; on narrow screens it starts folded and closes after a jump
@@ -131,7 +170,6 @@ const jsonld = {
 
     .head { max-width: 58rem; padding-block: clamp(3rem, 1rem + 7vw, 7rem) var(--space-4); }
     .meta { display: flex; flex-wrap: wrap; gap: .25rem var(--space-3); color: var(--color-text-muted); margin-bottom: var(--space-3); }
-    .meta .draft { color: var(--color-accent); }
     .head .title { width: fit-content; font: 600 var(--step-4) / 1.15 var(--font-serif); letter-spacing: var(--tracking-display); color: var(--color-text-strong); text-wrap: balance; }
     :global(:root:lang(zh-Hant-TW)) .head .title { font-size: clamp(2.25rem, 1.4rem + 3.6vw, 4.25rem); line-height: 1.3; letter-spacing: .01em; }
     .dek { font-size: var(--step-2); line-height: 1.6; color: var(--color-text-muted); max-width: 32em; margin-top: var(--space-3); text-align: justify; }
@@ -181,6 +219,18 @@ const jsonld = {
     @media (min-width: 1180px) { .end { padding-left: calc(17rem + var(--space-5)); } }
     .eof { display: flex; justify-content: flex-end; align-items: center; gap: .5rem; padding-top: var(--space-2); color: var(--color-text-faint); max-width: var(--measure); }
     .eof .status { margin: 0; }
+    /* share: the address itself, a copy button, then the networks as a row of plain links */
+    .share { max-width: var(--measure); margin-top: var(--space-4); padding: var(--space-3); border: var(--border); }
+    .share h2 { font-size: var(--step--1); font-weight: 400; color: var(--color-text-muted); margin-bottom: var(--space-2); }
+    .share .link { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    .share input { min-width: 0; padding: .6rem .75rem; font-size: .875rem; color: var(--color-text); background: var(--color-surface); border: var(--border); border-right: 0; border-radius: 0; }
+    .share input:focus { outline: none; border-color: var(--color-accent); }
+    .share .link button { padding: .6rem 1rem; color: var(--color-bg); background: var(--color-accent); border: 1px solid var(--color-accent); white-space: nowrap; transition: filter var(--dur-1); }
+    .share .link button:hover { filter: brightness(1.1); }
+    .share ul { display: flex; flex-wrap: wrap; gap: .25rem var(--space-3); margin-top: var(--space-2); }
+    .share li[hidden] { display: none; }
+    .share ul :is(a, button) { display: inline-block; padding-block: .35rem; color: var(--color-text-muted); text-decoration: none; transition: color var(--dur-1); }
+    .share ul :is(a, button):hover { color: var(--color-accent); }
     .pager { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-4); max-width: var(--measure); }
     .pager a { display: flex; flex-direction: column; gap: .35rem; text-decoration: none; }
     .pager .newer { text-align: right; align-items: flex-end; }

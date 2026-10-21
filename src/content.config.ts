@@ -14,7 +14,6 @@ const posts = defineCollection({
     /** path relative to the post, e.g. ./cover.jpg next to an index.md; resized and converted at build time */
     cover: image().optional(),
     coverAlt: z.string().optional(),
-    draft: z.boolean().default(false),
   }),
 });
 

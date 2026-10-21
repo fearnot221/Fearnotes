@@ -3,9 +3,9 @@ import { getCollection, type CollectionEntry } from "astro:content";
 export type Post = CollectionEntry<"posts">;
 export type Lang = Post["data"]["lang"];
 
-/** Newest first. Drafts show in `astro dev` only. */
+/** Newest first. */
 export async function getPosts() {
-  const posts = (await getCollection("posts", (p) => import.meta.env.DEV || !p.data.draft))
+  const posts = (await getCollection("posts"))
     .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
   return posts.map((post) => ({ post }));
 }
@@ -35,4 +35,7 @@ export const ui = {
   back: { zh: "回到日誌", en: "Back to the log" },
   copy: { zh: "複製", en: "Copy" },
   copied: { zh: "已複製", en: "Copied" },
+  share: { zh: "分享這篇文章", en: "Share this post" },
+  copyLink: { zh: "複製連結", en: "Copy link" },
+  more: { zh: "更多…", en: "More…" },
 } as const;
