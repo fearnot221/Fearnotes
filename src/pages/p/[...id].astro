@@ -18,9 +18,7 @@ const { title, description, date, updated, tags, lang, cover, coverAlt } = post.
 // the cover doubles as the share preview, cut to the 1200×630 that social cards expect
 const og = cover && (await getImage({ src: cover, width: 1200, height: 630, fit: "cover", format: "jpg", quality: 82 })).src;
 const { Content, headings } = await render(post);
-let section = 0; // h2s carry the same 01, 02… numbers the article prints beside them
-const toc = headings.filter((h) => (h.depth === 2 || h.depth === 3) && h.slug !== "footnote-label")
-  .map((h) => ({ ...h, no: h.depth === 2 ? String(++section).padStart(2, "0") : "" }));
+const toc = headings.filter((h) => (h.depth === 2 || h.depth === 3) && h.slug !== "footnote-label");
 const url = new URL(postHref(post.id), Astro.site).href;
 // plain share URLs: nothing from these services loads until a reader clicks one
 const enc = encodeURIComponent;
@@ -38,8 +36,6 @@ const jsonld = {
 };
 ---
 <Base title={`${title} — Fearnotes`} description={description} lang={lang} article={{ published: date, modified: updated, tags }} image={og} jsonld={jsonld}>
-  {/* reading progress: a hairline across the top of the window, with the brand square riding its tip */}
-  <div class="progress" aria-hidden="true"><span></span></div>
 
   <article class="post">
     <header class="head">
@@ -64,9 +60,9 @@ const jsonld = {
         <nav class="toc" aria-labelledby="toc-label">
           {/* one list for every width: a fold-out box above the text on narrow screens, a pinned sidebar on wide ones */}
           <details data-toc-box>
-            <summary class="mono" id="toc-label">{ui.contents[lang]}<span class="muted"> · {section || toc.length}</span></summary>
+            <summary class="mono" id="toc-label">{ui.contents[lang]}<span class="muted"> · {toc.filter((h) => h.depth === 2).length}</span></summary>
             <ol>{toc.map((h) => (
-              <li class={`d${h.depth}`}><a href={`#${h.slug}`} data-toc={h.slug}>{h.no && <span class="no mono">{h.no}</span>}<span class="t">{h.text}</span></a></li>
+              <li class={`d${h.depth}`}><a href={`#${h.slug}`} data-toc={h.slug}>{h.text}</a></li>
             ))}</ol>
           </details>
         </nav>
@@ -160,13 +156,6 @@ const jsonld = {
 
 <style>
   @layer components {
-    .progress { position: fixed; inset: 0 0 auto; z-index: 5; height: 2px; pointer-events: none; }
-    .progress::before, .progress span { content: ""; position: absolute; top: 0; left: 0; display: none; }
-    @supports (animation-timeline: scroll()) {
-      .progress::before { display: block; width: 100%; height: 1px; background: var(--color-accent); transform-origin: left; animation: draw linear both; animation-timeline: scroll(root); }
-      .progress span { display: block; width: 6px; height: 6px; background: var(--color-accent); animation: ride linear both; animation-timeline: scroll(root); }
-    }
-    @keyframes ride { from { left: 0; } to { left: calc(100% - 6px); } }
 
     .head { max-width: 58rem; padding-block: clamp(3rem, 1rem + 7vw, 7rem) var(--space-4); }
     .meta { display: flex; flex-wrap: wrap; gap: .25rem var(--space-3); color: var(--color-text-muted); margin-bottom: var(--space-3); }
@@ -204,16 +193,13 @@ const jsonld = {
     .toc details[open] summary::after { content: "−"; }
     .toc summary span { margin-right: auto; }
 
-    /* entries: serif at near body size; h2s lead with their section number, h3s sit indented under them */
-    .toc a { position: relative; display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); align-items: baseline; padding: .45rem 0 .45rem .9rem;
+    /* entries: serif at near body size; h3s sit indented under their h2 */
+    .toc a { position: relative; display: block; padding: .45rem 0 .45rem .9rem;
       color: var(--color-text-muted); text-decoration: none; font-size: var(--step-0); line-height: 1.5; border-left: 1px solid var(--color-rule); transition: color var(--dur-1), border-color var(--dur-2); }
-    .toc .d3 a { padding-block: .3rem; font-size: .9375rem; }
-    .toc .d3 .t { grid-column: 2; }
-    .toc .no { font-size: var(--step--1); color: var(--color-text-faint); transition: color var(--dur-2); }
+    .toc .d3 a { padding: .3rem 0 .3rem 2rem; font-size: .9375rem; }
     .toc a:hover { color: var(--color-text); }
-    /* the section being read: its rule turns amber and its number lights */
+    /* the section being read: its rule turns amber */
     .toc a[aria-current] { color: var(--color-text-strong); border-left-color: var(--color-accent); }
-    .toc a[aria-current] .no { color: var(--color-accent); }
 
     .end { margin-top: var(--space-5); }
     @media (min-width: 1180px) { .end { padding-left: calc(17rem + var(--space-5)); } }
